@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.15)
 project(STM32F103VETX LANGUAGES C CXX ASM)
 
 set(APP_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../src/App)
+set(BSP_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../src/Bsp)
+set(COMMON_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../src/Common)
+set(CONFIG_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../src/Config)
+set(STORAGE_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../src/Storage)
+set(THIRDPARTY_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../src/ThirdParty)
 set(PLATFORM_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../src/Platform/stm32/f1/stm32f103vetx)
 
 find_bsp(
@@ -11,18 +16,18 @@ find_bsp(
 	CONFIGURATION "com.sysprogs.toolchainoptions.arm.libctype=--specs=nano.specs -u _printf_float -u _scanf_float")
 
 bsp_include_directories(
-	${APP_ROOT}/Core/Inc
-	${APP_ROOT}/Bsp/Inc
-	${APP_ROOT}/Common/Inc
-	${APP_ROOT}/Config/Inc
+	${APP_ROOT}
 	${APP_ROOT}/Devices/Inc
 	${APP_ROOT}/Network/Ch395/Inc
 	${APP_ROOT}/Network/Inc
 	${APP_ROOT}/Protocol/Mqtt/Inc
 	${APP_ROOT}/Protocol/Platform/Inc
-	${APP_ROOT}/Storage/Inc
-	${APP_ROOT}/ThirdParty/Parson
 	${APP_ROOT}/Protocol/Modbus/Inc
+	${BSP_ROOT}/Inc
+	${COMMON_ROOT}/Inc
+	${CONFIG_ROOT}/Inc
+	${STORAGE_ROOT}/Inc
+	${THIRDPARTY_ROOT}/Parson
 	${PLATFORM_ROOT}/Core/Inc
 	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Inc
 	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy
@@ -37,22 +42,22 @@ add_bsp_based_executable(
 	GENERATE_MAP)
 
 target_sources(STM32F103VETX PRIVATE
-	${APP_ROOT}/Core/Src/app.c
-	${APP_ROOT}/Core/Src/app_freertos_hooks.c
-	${APP_ROOT}/Core/Src/app_rtos.c
-	${APP_ROOT}/Core/Src/modbus_test.c
-	${APP_ROOT}/Bsp/Src/bsp_air724.c
-	${APP_ROOT}/Bsp/Src/bsp_board.c
-	${APP_ROOT}/Bsp/Src/bsp_ch395.c
-	${APP_ROOT}/Bsp/Src/bsp_eeprom.c
-	${APP_ROOT}/Bsp/Src/bsp_rs485.c
-	${APP_ROOT}/Bsp/Src/bsp_uart.c
-	${APP_ROOT}/Bsp/Src/bsp_uart_callbacks.c
-	${APP_ROOT}/Bsp/Src/bsp_watchdog.c
-	${APP_ROOT}/Common/Src/log.c
-	${APP_ROOT}/Common/Src/md5.c
-	${APP_ROOT}/Common/Src/util.c
-	${APP_ROOT}/Config/Src/config.c
+	${APP_ROOT}/app.c
+	${APP_ROOT}/app_freertos_hooks.c
+	${APP_ROOT}/app_rtos.c
+	${APP_ROOT}/modbus_test.c
+	${BSP_ROOT}/Src/bsp_air724.c
+	${BSP_ROOT}/Src/bsp_board.c
+	${BSP_ROOT}/Src/bsp_ch395.c
+	${BSP_ROOT}/Src/bsp_eeprom.c
+	${BSP_ROOT}/Src/bsp_rs485.c
+	${BSP_ROOT}/Src/bsp_uart.c
+	${BSP_ROOT}/Src/bsp_uart_callbacks.c
+	${BSP_ROOT}/Src/bsp_watchdog.c
+	${COMMON_ROOT}/Src/log.c
+	${COMMON_ROOT}/Src/md5.c
+	${COMMON_ROOT}/Src/util.c
+	${CONFIG_ROOT}/Src/config.c
 	${APP_ROOT}/Devices/Src/ac_controller.c
 	${APP_ROOT}/Devices/Src/device_catalog.c
 	${APP_ROOT}/Devices/Src/discrete_sensor.c
@@ -72,8 +77,8 @@ target_sources(STM32F103VETX PRIVATE
 	${APP_ROOT}/Network/Src/network_socket_ch395.c
 	${APP_ROOT}/Protocol/Mqtt/Src/mqtt_client.c
 	${APP_ROOT}/Protocol/Platform/Src/platform_messages.c
-	${APP_ROOT}/Storage/Src/app_eeprom.c
-	${APP_ROOT}/ThirdParty/Parson/parson.c
+	${STORAGE_ROOT}/Src/app_eeprom.c
+	${THIRDPARTY_ROOT}/Parson/parson.c
 	${APP_ROOT}/Protocol/Modbus/Src/modbus_api.c
 	${APP_ROOT}/Protocol/Modbus/Src/modbus_core.c
 	${APP_ROOT}/Protocol/Modbus/Src/modbus_core_crc.c
@@ -117,18 +122,18 @@ target_sources(STM32F103VETX PRIVATE
 	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3/port.c)
 
 target_include_directories(STM32F103VETX PRIVATE
-	${APP_ROOT}/Core/Inc
-	${APP_ROOT}/Bsp/Inc
-	${APP_ROOT}/Common/Inc
-	${APP_ROOT}/Config/Inc
+	${APP_ROOT}
 	${APP_ROOT}/Devices/Inc
 	${APP_ROOT}/Network/Ch395/Inc
 	${APP_ROOT}/Network/Inc
 	${APP_ROOT}/Protocol/Mqtt/Inc
 	${APP_ROOT}/Protocol/Platform/Inc
-	${APP_ROOT}/Storage/Inc
-	${APP_ROOT}/ThirdParty/Parson
 	${APP_ROOT}/Protocol/Modbus/Inc
+	${BSP_ROOT}/Inc
+	${COMMON_ROOT}/Inc
+	${CONFIG_ROOT}/Inc
+	${STORAGE_ROOT}/Inc
+	${THIRDPARTY_ROOT}/Parson
 	${PLATFORM_ROOT}/Core/Inc
 	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Inc
 	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy

@@ -6,6 +6,12 @@
 
 ## 0. 目录与分层原则
 
+- `src/App` 只放产品业务逻辑、设备编排、网络和协议流程。
+- `src/Bsp` 只放板级服务和外设封装。
+- `src/Common` 只放共享类型、日志、哈希和通用工具。
+- `src/Config` 只放运行配置和产品参数。
+- `src/Storage` 只放 EEPROM / Flash 持久化。
+- `src/ThirdParty` 只放 App 依赖的第三方库。
 - `src/Core` 只放 BASIC 解释器、运行时公共层、公共数据结构。
 - `src/Drives` 只放芯片、板级、设备、总线、端口适配等可复用驱动。
 - `projects/<chip>/<board>` 放不同芯片和新品的独立工程入口。
@@ -17,7 +23,12 @@
 | 层级 | 作用 |
 | --- | --- |
 | `Core` | BASIC 词法、语法、AST、解释执行、标准函数、错误模型 |
-| `App` | 应用逻辑、Bsp、配置、协议、设备编排 |
+| `App` | 应用逻辑、设备编排、网络和协议流程 |
+| `Bsp` | 板级服务、外设封装 |
+| `Common` | 共享类型、日志、哈希、通用工具 |
+| `Config` | 运行配置、产品参数 |
+| `Storage` | EEPROM / Flash 持久化 |
+| `ThirdParty` | App 依赖的第三方库 |
 | `Drives` | 可复用设备驱动 |
 | `Platform` | MCU、板级、总线、端口适配 |
 | `projects` | 每个芯片 / 板子 / 产品的独立工程与调试入口 |
@@ -47,7 +58,7 @@
 
 | 编号 | 状态 | 顺序 | 任务 |
 | --- | --- | --- | --- |
-| B1 | ⬜ | [依赖: A2] | 目录定型：App / Drives / Platform / projects |
+| B1 | ⬜ | [依赖: A2] | 目录定型：App / Bsp / Common / Config / Storage / ThirdParty / Drives / Platform / projects |
 | B2 | ⬜ | [依赖: B1] | 板级资源模型：IOC、时钟、引脚、外设映射 |
 | B3 | ⬜ | [并行 ‖ B2] | UART / I2C / SPI 的统一适配接口 |
 | B4 | ⬜ | [依赖: B2] | GPIO / Timer / Flash 等基础能力封装 |
