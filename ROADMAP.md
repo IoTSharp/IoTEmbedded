@@ -65,6 +65,6 @@
 
 ## 7. 接口稳定性公约
 
-- **BasicRuntime 接口签名**：与 `external/Edge`（C#）、`external/Pixiu`（Linux C）的同名接口保持等价语义；新增接口需先在三方一致。
+- **BasicRuntime 接口签名**：与 `external/IoTSharp.Edge`（C#）、`external/IoTSharp.Edge.Linux`（Linux C）的同名接口保持等价语义；新增接口需先在三方一致。
 - **脚本签名格式**：完全跟随 SaaS 端定义；本仓库只校验，不定义。
 - 不在本仓库内引入任何租户 / 计费 / License 概念。
