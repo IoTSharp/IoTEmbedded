@@ -63,6 +63,14 @@ src/<Module>[/<SubModule>]/
 - 不要为每个模块单独追加 include path；新增模块只需把其 `Src/*.c` 加入源码列表。
 - 新增 / 重命名 / 移动文件后，必须同步修改 `CMakeLists.txt` 的源码列表；保持
   按模块分组、字母顺序便于 review。
+- **可执行 target 的 `target_sources` 严禁列入任何 `${PLATFORM_ROOT}/**` 文件**
+  （即 `src/Platform/stm32/...` 下的 CubeMX `Core/Src/`、HAL `Drivers/`、
+  FreeRTOS、CMSIS_RTOS_V2 等）。这些源码由 `find_bsp` + `add_bsp_based_executable`
+  根据 `.gpdsc` / `.mxproject` 自动归属到 BSP target 编译；用户 target 再列一次会
+  造成同一 .obj 出现在 `BSP.dir/` 和 `<Exe>.dir/`，链接阶段触发数百条
+  `multiple definition` 错误（`main` / `SystemInit` / 所有 `HAL_*` / FreeRTOS
+  内核与 IRQ handler 全部命中）。用户 target 只列业务源码（Application、Board、
+  Bus、Common、Config、Devices、Modem、Network、Protocol、Storage、ThirdParty/Parson）。
 
 ## 4. 文件操作规范
 

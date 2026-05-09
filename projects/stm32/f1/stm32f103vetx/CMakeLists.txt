@@ -83,44 +83,11 @@ target_sources(STM32F103VETX PRIVATE
 	${SRC_ROOT}/Protocol/Modbus/Src/modbus_core_master.c
 	# ThirdParty
 	${SRC_ROOT}/ThirdParty/Parson/parson.c
-	# Platform (CubeMX-generated, do not modify)
-	${PLATFORM_ROOT}/Core/Src/freertos.c
-	${PLATFORM_ROOT}/Core/Src/main.c
-	${PLATFORM_ROOT}/Core/Src/stm32f1xx_hal_msp.c
-	${PLATFORM_ROOT}/Core/Src/stm32f1xx_hal_timebase_tim.c
-	${PLATFORM_ROOT}/Core/Src/stm32f1xx_it.c
-	${PLATFORM_ROOT}/Core/Src/syscalls.c
-	${PLATFORM_ROOT}/Core/Src/sysmem.c
-	${PLATFORM_ROOT}/Core/Src/system_stm32f1xx.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_cortex.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_dma.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_exti.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_flash_ex.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_gpio_ex.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_i2c.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_iwdg.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_pwr.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rcc_ex.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rtc.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_rtc_ex.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_spi.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_tim_ex.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal_uart.c
-	${PLATFORM_ROOT}/Drivers/STM32F1xx_HAL_Driver/Src/stm32f1xx_hal.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/croutine.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/event_groups.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/list.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/queue.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/tasks.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/timers.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c
-	${PLATFORM_ROOT}/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM3/port.c)
+	# NOTE: CubeMX-generated sources under ${PLATFORM_ROOT} (Core/Src, Drivers,
+	# Middlewares/FreeRTOS, CMSIS_RTOS_V2) are owned by the auto-generated BSP
+	# target via find_bsp() / add_bsp_based_executable(). Do NOT list them here
+	# or the linker will report multiple-definition errors.
+	)
 
 target_include_directories(STM32F103VETX PRIVATE
 	${SRC_ROOT}
