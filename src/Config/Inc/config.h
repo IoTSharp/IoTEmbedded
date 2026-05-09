@@ -1,10 +1,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "app_types.h"
-#include "log.h"
-#include "md5.h"
-#include "network_config.h"
+#include "Common/Inc/app_types.h"
+#include "Common/Inc/log.h"
+#include "Common/Inc/md5.h"
+#include "Config/Inc/network_config.h"
 #include <stddef.h>
 
 #ifdef __cplusplus

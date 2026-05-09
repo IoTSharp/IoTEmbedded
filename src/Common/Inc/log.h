@@ -1,7 +1,7 @@
 #ifndef __LOG_H
 #define __LOG_H
 
-#include "util.h"
+#include "Common/Inc/util.h"
 #include <stdio.h>
 #include <stdbool.h>
 

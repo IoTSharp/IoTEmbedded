@@ -1,7 +1,7 @@
 #ifndef NETWORK_CONFIG_H
 #define NETWORK_CONFIG_H
 
-#include "app_types.h"
+#include "Common/Inc/app_types.h"
 
 #ifdef __cplusplus
 extern "C" {

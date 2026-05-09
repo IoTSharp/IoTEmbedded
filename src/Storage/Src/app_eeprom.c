@@ -1,6 +1,6 @@
-#include "app_eeprom.h"
+#include "Storage/Inc/app_eeprom.h"
 
-#include "bsp_eeprom.h"
+#include "Storage/Inc/bsp_eeprom.h"
 
 #define EEPROM_TIMEOUT_MS 1000U
 #define EEPROM_READY_TRIALS 100U

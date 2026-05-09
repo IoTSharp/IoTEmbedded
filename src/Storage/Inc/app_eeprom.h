@@ -1,7 +1,7 @@
 #ifndef APP_EEPROM_H
 #define APP_EEPROM_H
 
-#include "app_types.h"
+#include "Common/Inc/app_types.h"
 #include <stddef.h>
 
 #ifdef __cplusplus

@@ -1,4 +1,4 @@
-#include "util.h"
+#include "Common/Inc/util.h"
 
 size_t util_strnlen(const char *s, size_t max_len) {
   size_t i = 0;
