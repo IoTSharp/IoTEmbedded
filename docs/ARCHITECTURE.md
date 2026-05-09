@@ -9,38 +9,46 @@ src/
     Runtime/    execution loop, errors, built-ins, runtime services
     Common/     shared types, utilities, memory helpers
     Public/     headers exposed to drivers and projects
+  App/
+    Bsp/        board services, pin and peripheral wrappers
+    Common/     logging, hashing, utilities, app-wide helpers
+    Config/     runtime configuration and product settings
+    Devices/    product/device logic
+    Network/    network stack adapters and transport glue
+    Protocol/   MQTT, Modbus, and other app protocols
+    Storage/    EEPROM / Flash persistence helpers
+    ThirdParty/ vendored libraries used by App
   Drives/
+    Device/     reusable device drivers
+  Platform/
     Chip/       MCU-specific clock, flash, irq, peripheral glue
     Board/      board resources, IOC, pin mapping, LEDs, buttons
-    Device/     reusable device drivers
     Bus/        UART, I2C, SPI, CAN, etc.
     Port/       platform adaptation layer
 projects/
-  <vendor>/<series>/<board>/
-    app/        product entry points
-    board/      board-specific resources
-    linker/     linker script and memory layout
-    visualgdb/  VisualGDB project files
+  <vendor>/<series>/<target>/
+    project files and build/debug wiring only
 ```
 
 ## Design rules
 
 - `Core` must not depend on a specific chip.
-- `Drives/Chip` may depend on chip headers, but not on a product workflow.
-- `Drives/Board` owns board-level wiring and IOC mapping.
-- `projects` contains one build/debug entry per target board or product.
+- `App` is the application layer and may depend on `Core`, `Drives`, and `Platform`.
+- `Drives` only holds reusable device drivers.
+- `Platform` owns chip, board, bus, and port glue.
+- `projects` contains only project-specific wiring, not reusable platform code.
 - Any external system that wants to extend the runtime should talk to `Core/Public` first.
 
 ## Split by responsibility
 
 - Interpreter team: `src/Core/Basic`
 - Runtime team: `src/Core/Runtime`
-- MCU port team: `src/Drives/Chip`
-- Board bring-up team: `src/Drives/Board`
-- Common driver team: `src/Drives/Device` and `src/Drives/Bus`
+- Application team: `src/App`
+- Common driver team: `src/Drives/Device`
+- Platform team: `src/Platform`
 - Target integration team: `projects`
 
 ## Future extension
 
-Add a new chip by creating a new chip folder under `src/Drives/Chip` and a matching entry under `projects`.
-Add a new product by creating a new board folder under `projects` without changing `Core`.
+Add a new chip by creating a new chip folder under `src/Platform/Chip`.
+Add a new product by creating a new target folder under `projects` that wires into `src/App`, `src/Core`, `src/Drives`, and `src/Platform`.

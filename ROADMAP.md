@@ -17,10 +17,9 @@
 | 层级 | 作用 |
 | --- | --- |
 | `Core` | BASIC 词法、语法、AST、解释执行、标准函数、错误模型 |
-| `Drives/Chip` | MCU 相关的时钟、Flash、IRQ、寄存器和底层外设封装 |
-| `Drives/Board` | 板级资源、IOC、引脚映射、LED、按键、串口号等 |
-| `Drives/Device` | 可复用设备驱动，按设备而不是按板子组织 |
-| `Drives/Bus` | UART / I2C / SPI / CAN 等总线抽象 |
+| `App` | 应用逻辑、Bsp、配置、协议、设备编排 |
+| `Drives` | 可复用设备驱动 |
+| `Platform` | MCU、板级、总线、端口适配 |
 | `projects` | 每个芯片 / 板子 / 产品的独立工程与调试入口 |
 
 ## 2. 里程碑
@@ -48,7 +47,7 @@
 
 | 编号 | 状态 | 顺序 | 任务 |
 | --- | --- | --- | --- |
-| B1 | ⬜ | [依赖: A2] | 驱动层目录定型：Chip / Board / Device / Bus |
+| B1 | ⬜ | [依赖: A2] | 目录定型：App / Drives / Platform / projects |
 | B2 | ⬜ | [依赖: B1] | 板级资源模型：IOC、时钟、引脚、外设映射 |
 | B3 | ⬜ | [并行 ‖ B2] | UART / I2C / SPI 的统一适配接口 |
 | B4 | ⬜ | [依赖: B2] | GPIO / Timer / Flash 等基础能力封装 |

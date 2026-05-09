@@ -1,5 +1,5 @@
 # Drives
 
-Chip, board, bus, device, and port adaptation layer.
+Reusable device drivers only.
 
-This layer is where hardware-specific work lives.
+Keep chip, board, bus, and port glue in `src/Platform`.

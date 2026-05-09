@@ -1,5 +1,5 @@
 # Projects
 
-One independent build/debug entry per chip or product.
+Project-specific build/debug entry and wiring only.
 
-Each project can own its own VisualGDB configuration and linker script.
+Reusable platform and application code should live under `src`.
