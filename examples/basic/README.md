@@ -20,3 +20,13 @@
 - `MQTT_MESSAGE_COUNT()`：返回当前收件箱待处理消息数量。
 - `MQTT_OVERFLOW()`：返回因收件箱满而丢弃的消息数量。
 - `BASIC_DELAY(ms)` / `BASIC_TICKS()`：脚本延时和系统 tick 辅助函数。
+
+## UART / RS485 函数
+
+- `UART_BAUD(port)` / `UART_SET_BAUD(port, baud)`：读取或按 8N1 重新配置 UART 波特率。
+- `UART_WRITE(port, text$, timeout_ms)` / `UART_READ(port, len, timeout_ms)`：文本收发；`UART_READ` 单次最多返回 256 字节。
+- `UART_WRITE_BYTES(port, buf, len, timeout_ms)` / `UART_READ_BYTES(port, buf, len, timeout_ms)`：一维数值数组收发原始字节，数组元素范围为 0-255，返回实际字节数。
+- `UART_FLUSH(port)`：清掉对应 UART 的接收残留。
+- `RS485_*` 是 `UART_*` 在 RS485/USART1 上的便捷封装，会自动处理 485 收发方向。
+
+`port` 可写数字 `1`/`2`/`4`/`5`，也可写 `"RS485"`、`"DEBUG"`、`"AIR724"`、`"RS232"`、`"USART1"`、`"USART2"`、`"UART4"`、`"UART5"` 等名称。
