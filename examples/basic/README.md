@@ -25,11 +25,16 @@
 
 - `CONFIG_GET(key$[, default$])`：读取当前配置值，返回字符串。
 - `CONFIG_SET(key$, value)`：修改当前配置草稿，`value` 可直接传字符串或数字。
-- `CONFIG_APPLY()`：把当前草稿应用到运行态；`wired/auto` 会按当前 `local_ip/gateway/mask` 重刷 CH395 配置，`4g` 则切到 Air724UG。
+- `CONFIG_APPLY()`：把当前草稿应用到运行态；固定 CH395Q 场景优先用 `NETWORK_CH395()` 或 `MQTT_SETUP_CH395(...)`。
 - `CONFIG_SAVE()`：把当前配置写入 EEPROM。
 - `CONFIG_RESET()`：恢复默认配置草稿。
+- `NETWORK_AUTO([save])`：切回自动主备链路。
+- `NETWORK_CH395([save])`：固定 MQTT 网络链路为 CH395Q/UART4/CN2，并用当前本机 IP 配置重刷 CH395。
+- `NETWORK_4G([save])`：固定 MQTT 网络链路为 Air724UG/UART4。
 - `NETWORK_USE(mode$[, save])`：直接切换 `auto|wired|4g`，可选 `save=1` 顺手落盘。
 - `NETWORK_MODE()` / `NETWORK_LINK()` / `NETWORK_READY()`：读取当前配置模式、当前活动链路和链路就绪状态。
+- `MQTT_USE_AUTO([save])` / `MQTT_USE_CH395([save])` / `MQTT_USE_4G([save])`：与 `NETWORK_*` 等价，但脚本语义更偏 MQTT 链路选择。
+- `MQTT_SETUP_CH395(host$, port, user$, password$, local_ip$, gateway$, mask$[, save])`：设置 MQTT 与 CH395Q 本机网络参数，立即切到 CH395Q/UART4/CN2；`password$` 传 `"auto"` 会按平台规则自动生成密码。
 
 其中 `wired` 对应 CH395Q/UART4/CN2，`4g` 对应 Air724UG/UART4。
 
@@ -77,15 +82,7 @@
 示例：
 
 ```basic
-CONFIG_SET("network_mode", "wired")
-CONFIG_SET("mqtt_ip", "192.168.137.110")
-CONFIG_SET("mqtt_port", 1883)
-CONFIG_SET("mqtt_user", "d0001")
-CONFIG_SET("mqtt_password", "auto")
-CONFIG_SET("local_ip", "192.168.137.201")
-CONFIG_SET("gateway", "192.168.137.11")
-CONFIG_SET("mask", "255.255.255.0")
-CONFIG_APPLY()
+MQTT_SETUP_CH395("192.168.137.110", 1883, "d0001", "auto", "192.168.137.201", "192.168.137.11", "255.255.255.0")
 
 LET rs485 = UART_OPEN(1, "RS485")
 DIM regs(3)

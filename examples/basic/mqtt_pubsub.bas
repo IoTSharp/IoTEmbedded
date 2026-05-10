@@ -1,6 +1,11 @@
 REM mqtt_pubsub.bas - BASIC owns MQTT connect, subscribe, publish, receive, reconnect
 PRINT "BASIC MQTT loop demo"
 
+IF MQTT_SETUP_CH395("192.168.137.110", 1883, "d0001", "auto", "192.168.137.201", "192.168.137.11", "255.255.255.0") = 0 THEN
+  PRINT "ch395 setup failed"
+  END
+ENDIF
+
 LET pub_topic$ = MQTT_BUILD_TOPIC("/v1/devices/up/basic/")
 LET sub_topic$ = MQTT_BUILD_TOPIC("/v1/devices/down/basic/")
 PRINT "pub topic="; pub_topic$

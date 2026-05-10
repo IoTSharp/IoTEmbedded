@@ -69,8 +69,10 @@ ErrorStatus config_get_value(const char *key, char *buf, size_t buf_size);
 ErrorStatus config_set_value(const char *key, const char *value);
 ErrorStatus config_apply_runtime(void);
 ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist);
+ErrorStatus config_apply_ch395q_network(bool persist);
 network_mode_t config_get_network_mode(void);
 const char *config_network_mode_name(network_mode_t mode);
+bool config_parse_network_mode(const char *text, network_mode_t *mode);
 /** 平台 registerInfo 进入运行态前先检查手工保存的现场设备白名单；空表时允许平台注册用于首次联调。 */
 bool config_saved_device_table_allows(uint16_t service_id, uint16_t manufacture_model, uint8_t slave_addr);
 

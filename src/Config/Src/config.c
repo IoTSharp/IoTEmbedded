@@ -241,9 +241,9 @@ static bool config_device_table_has_enabled_entries(void);
 static bool config_device_table_allows(uint16_t service_id, uint16_t manufacture_model, uint8_t slave_addr);
 static void config_migrate_v4(const config_v4_t *saved_config);
 static void config_migrate_legacy(const config_legacy_t *legacy_config);
-static bool config_network_mode_from_text(const char *text, network_mode_t *mode);
 ErrorStatus config_apply_runtime(void);
 ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist);
+ErrorStatus config_apply_ch395q_network(bool persist);
 static void config_device_table_clear(void);
 static bool config_device_table_add(uint16_t service_id, uint16_t manufacture_model, uint8_t slave_addr);
 static void config_print_device_config(void);
@@ -568,7 +568,7 @@ static void config_migrate_legacy(const config_legacy_t *legacy_config) {
   }
 }
 
-static bool config_network_mode_from_text(const char *text, network_mode_t *mode) {
+bool config_parse_network_mode(const char *text, network_mode_t *mode) {
   if (text == NULL || mode == NULL) {
     return false;
   }
@@ -595,6 +595,16 @@ ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist) {
   if (status != SUCCESS) {
     return status;
   }
+  return persist ? config_write_into_eeprom() : SUCCESS;
+}
+
+ErrorStatus config_apply_ch395q_network(bool persist) {
+  active_config.network_mode = NETWORK_MODE_CH395Q;
+  if (!ch395_board_init_network(active_config.mqtt.local_ip, active_config.mqtt.gateway_ip,
+                                active_config.mqtt.mask_ip)) {
+    return ERROR;
+  }
+  network_manager_set_mode(active_config.network_mode);
   return persist ? config_write_into_eeprom() : SUCCESS;
 }
 
@@ -1068,7 +1078,7 @@ ErrorStatus config_set_value(const char *key, const char *value) {
     return config_set_u32(&active_config.network_monitor.probe_interval_ms, value);
   } else if (strcmp(key, "network_mode") == 0) {
     network_mode_t mode = NETWORK_MODE_AUTO;
-    if (!config_network_mode_from_text(value, &mode)) {
+    if (!config_parse_network_mode(value, &mode)) {
       return ERROR;
     }
     active_config.network_mode = mode;
@@ -1555,7 +1565,7 @@ static void config_handle_network_cmd(char *args) {
     network_manager_force_probe();
   } else if (strncmp(args, "use ", 4) == 0) {
     network_mode_t mode = NETWORK_MODE_AUTO;
-    if (!config_network_mode_from_text(args + 4, &mode)) {
+    if (!config_parse_network_mode(args + 4, &mode)) {
       LOG_CMD_RESP("usage: network status|probe|use auto|wired|4g|ch395q|air724ug");
       return;
     }
@@ -1568,7 +1578,7 @@ static void config_handle_network_cmd(char *args) {
 
 static void config_handle_netuse_cmd(char *args) {
   network_mode_t mode = NETWORK_MODE_AUTO;
-  if (!config_network_mode_from_text(args, &mode)) {
+  if (!config_parse_network_mode(args, &mode)) {
     LOG_CMD_RESP("usage: netuse auto|wired|4g|ch395q|air724ug");
     return;
   }
