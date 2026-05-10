@@ -7,6 +7,8 @@
 
 // 初始化主站事务锁；RTOS 内核初始化后调用，用于串行化所有 RS485/Modbus 访问。
 void Modbus_MasterInit(void);
+bool Modbus_MasterLock(uint8_t *errorCode);
+void Modbus_MasterUnlock(void);
 
 /**
  * @brief 06

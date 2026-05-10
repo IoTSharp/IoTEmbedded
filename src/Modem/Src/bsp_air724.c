@@ -28,11 +28,11 @@ GPIO_PinState bsp_air724_read_netstate(void) {
 }
 
 HAL_StatusTypeDef bsp_air724_uart_write(const uint8_t *data, uint16_t length, uint32_t timeout_ms) {
-  return bsp_uart_write(BSP_AIR724_UART_HANDLE, data, length, timeout_ms);
+  return bsp_uart_write(BSP_UART4_HANDLE, data, length, timeout_ms);
 }
 
 HAL_StatusTypeDef bsp_air724_uart_read(uint8_t *data, uint16_t length, uint32_t timeout_ms) {
-  return bsp_uart_read(BSP_AIR724_UART_HANDLE, data, length, timeout_ms);
+  return bsp_uart_read(BSP_UART4_HANDLE, data, length, timeout_ms);
 }
 
 HAL_StatusTypeDef bsp_air724_at_command(const char *command, char *response, uint16_t response_size, uint32_t timeout_ms) {

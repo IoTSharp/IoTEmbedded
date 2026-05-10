@@ -51,6 +51,26 @@ void Modbus_MasterInit(void) {
 #endif
 }
 
+bool Modbus_MasterLock(uint8_t *errorCode) {
+#if APP_ENABLE_CMSIS_RTOS
+  if (modbus_master_lock != NULL && osKernelGetState() == osKernelRunning) {
+    if (osMutexAcquire(modbus_master_lock, osWaitForever) != osOK) {
+      modbus_set_error(errorCode, ModbusFrameErrorCode);
+      return false;
+    }
+  }
+#endif
+  return true;
+}
+
+void Modbus_MasterUnlock(void) {
+#if APP_ENABLE_CMSIS_RTOS
+  if (modbus_master_lock != NULL && osKernelGetState() == osKernelRunning) {
+    (void)osMutexRelease(modbus_master_lock);
+  }
+#endif
+}
+
 /**
  * 从机地址(1)-功能码(1)-寄存器地址(2)--数据(2)-CRC(2)
  * @brief 写一个寄存器
@@ -303,23 +323,11 @@ static void modbus_set_error(uint8_t *errorCode, uint8_t value) {
 }
 
 static bool modbus_lock_transaction(uint8_t *errorCode) {
-#if APP_ENABLE_CMSIS_RTOS
-  if (modbus_master_lock != NULL && osKernelGetState() == osKernelRunning) {
-    if (osMutexAcquire(modbus_master_lock, osWaitForever) != osOK) {
-      modbus_set_error(errorCode, ModbusFrameErrorCode);
-      return false;
-    }
-  }
-#endif
-  return true;
+  return Modbus_MasterLock(errorCode);
 }
 
 static void modbus_unlock_transaction(void) {
-#if APP_ENABLE_CMSIS_RTOS
-  if (modbus_master_lock != NULL && osKernelGetState() == osKernelRunning) {
-    (void)osMutexRelease(modbus_master_lock);
-  }
-#endif
+  Modbus_MasterUnlock();
 }
 
 static bool modbus_prepare_transaction(uint8_t *errorCode) {

@@ -41,21 +41,21 @@ void ch395_cmd_reset(void) {
 
 void ch395_write_cmd(uint8_t command) {
   const uint8_t header[] = {CH395_UART_SYNC1, CH395_UART_SYNC2, command};
-  bsp_uart_flush_rx(BSP_AIR724_UART_HANDLE);
-  (void)bsp_uart_write(BSP_AIR724_UART_HANDLE, header, (uint16_t)sizeof(header), CH395_UART_TIMEOUT_MS);
+  bsp_uart_flush_rx(BSP_UART4_HANDLE);
+  (void)bsp_uart_write(BSP_UART4_HANDLE, header, (uint16_t)sizeof(header), CH395_UART_TIMEOUT_MS);
   // WCH UART/SPI 示例都要求命令字后保留短暂间隔，再继续写参数或读返回值。
   bsp_delay_us(2U);
 }
 
 HAL_StatusTypeDef ch395_write_data(uint8_t data) {
-  return bsp_uart_write(BSP_AIR724_UART_HANDLE, &data, 1U, CH395_UART_TIMEOUT_MS);
+  return bsp_uart_write(BSP_UART4_HANDLE, &data, 1U, CH395_UART_TIMEOUT_MS);
 }
 
 HAL_StatusTypeDef ch395_read_data(uint8_t *data) {
   if (data == NULL) {
     return HAL_ERROR;
   }
-  return bsp_uart_read(BSP_AIR724_UART_HANDLE, data, 1U, CH395_UART_TIMEOUT_MS);
+  return bsp_uart_read(BSP_UART4_HANDLE, data, 1U, CH395_UART_TIMEOUT_MS);
 }
 
 uint8_t ch395_cmd_get_ver(void) {
@@ -256,7 +256,7 @@ uint16_t ch395_read_recv_buf(uint8_t socket_index, uint8_t *data, uint16_t lengt
   (void)ch395_write_data((uint8_t)length);
   (void)ch395_write_data((uint8_t)(length >> 8));
 
-  return bsp_uart_read(BSP_AIR724_UART_HANDLE, data, length, CH395_UART_TIMEOUT_MS) == HAL_OK ? length : 0U;
+  return bsp_uart_read(BSP_UART4_HANDLE, data, length, CH395_UART_TIMEOUT_MS) == HAL_OK ? length : 0U;
 }
 
 void ch395_clear_recv_buf(uint8_t socket_index) {
@@ -268,7 +268,7 @@ static uint8_t ch395_write_data_bytes(const uint8_t *data, uint16_t length) {
   if (data == NULL || length == 0U) {
     return CH395_ERR_UNKNOW;
   }
-  return bsp_uart_write(BSP_AIR724_UART_HANDLE, data, length, CH395_UART_TIMEOUT_MS) == HAL_OK
+  return bsp_uart_write(BSP_UART4_HANDLE, data, length, CH395_UART_TIMEOUT_MS) == HAL_OK
            ? CH395_CMD_ERR_SUCCESS
            : CH395_ERR_UNKNOW;
 }
@@ -330,5 +330,5 @@ static uint8_t ch395_uart_set_baudrate(uint32_t baudrate) {
 }
 
 static HAL_StatusTypeDef ch395_uart_configure(uint32_t baudrate) {
-  return bsp_uart_configure_8n1(BSP_AIR724_UART_HANDLE, baudrate);
+  return bsp_uart_configure_8n1(BSP_UART4_HANDLE, baudrate);
 }

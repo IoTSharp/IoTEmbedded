@@ -1,4 +1,4 @@
-# BASIC MQTT Examples
+# BASIC Examples
 
 本目录放可以写入 EEPROM 脚本槽的 `.bas` 示例。
 当前固件默认从 EEPROM 里的 `app01.bas` / `app02.bas` 读取脚本；这里的示例文件用于编写和演示脚本内容。
@@ -23,10 +23,33 @@
 
 ## UART / RS485 函数
 
-- `UART_BAUD(port)` / `UART_SET_BAUD(port, baud)`：读取或按 8N1 重新配置 UART 波特率。
-- `UART_WRITE(port, text$, timeout_ms)` / `UART_READ(port, len, timeout_ms)`：文本收发；`UART_READ` 单次最多返回 256 字节。
-- `UART_WRITE_BYTES(port, buf, len, timeout_ms)` / `UART_READ_BYTES(port, buf, len, timeout_ms)`：一维数值数组收发原始字节，数组元素范围为 0-255，返回实际字节数。
-- `UART_FLUSH(port)`：清掉对应 UART 的接收残留。
-- `RS485_*` 是 `UART_*` 在 RS485/USART1 上的便捷封装，会自动处理 485 收发方向。
+- `UART_OPEN(port, type$)`：按 CubeMX 生成的 UART 句柄打开端口，`port` 取 `1`/`2`/`4`/`5`，`type$` 取 `"UART"`、`"RS485"` 或 `"RS232"`，返回可传递的句柄。
+- `UART_BAUD(port_handle)` / `UART_SET_BAUD(port_handle, baud)`：读取或按 8N1 重新配置 UART 波特率。
+- `UART_WRITE(port_handle, text$, timeout_ms)` / `UART_READ(port_handle, len, timeout_ms)`：文本收发；`UART_READ` 单次最多返回 256 字节。
+- `UART_WRITE_BYTES(port_handle, buf, len, timeout_ms)` / `UART_READ_BYTES(port_handle, buf, len, timeout_ms)`：一维数值数组收发原始字节，数组元素范围为 0-255，返回实际字节数。
+- `UART_FLUSH(port_handle)`：清掉对应 UART 的接收残留。
 
-`port` 可写数字 `1`/`2`/`4`/`5`，也可写 `"RS485"`、`"DEBUG"`、`"AIR724"`、`"RS232"`、`"USART1"`、`"USART2"`、`"UART4"`、`"UART5"` 等名称。
+## MODBUS 函数
+
+- `MODBUS_READ_COILS(port_handle, slave, reg, count, buf[, timeout_ms])`：`buf` 按 `count` 个 0/1 元素展开，返回位数。
+- `MODBUS_READ_DISCRETE_INPUTS(port_handle, slave, reg, count, buf[, timeout_ms])`：`buf` 按 `count` 个 0/1 元素展开，返回位数。
+- `MODBUS_READ_HOLD_REGS(port_handle, slave, reg, count, buf[, timeout_ms])`：`buf` 每个寄存器占 2 字节，返回寄存器个数。
+- `MODBUS_READ_INPUT_REGS(port_handle, slave, reg, count, buf[, timeout_ms])`：`buf` 每个寄存器占 2 字节，返回寄存器个数。
+- `MODBUS_WRITE_COIL(port_handle, slave, reg, value[, timeout_ms])`
+- `MODBUS_WRITE_REG(port_handle, slave, reg, value[, timeout_ms])`
+- `MODBUS_WRITE_COILS(port_handle, slave, reg, count, buf[, timeout_ms])`：`buf` 传 `count` 个 0/1 元素。
+- `MODBUS_WRITE_REGS(port_handle, slave, reg, count, buf[, timeout_ms])`
+- `MODBUS_ERROR()` / `MODBUS_LAST_ERROR()`：读取最近一次 Modbus 错误码。
+
+`AIR724` 只是挂在 `UART4` 上的外设名称，不是 BASIC 端口类型；如果脚本要通过它做串口收发，也还是先 `UART_OPEN(4, "UART")` 再使用句柄。
+当前板级可用组合是 `1/RS485`、`2/UART`、`4/UART`、`5/RS232`。
+
+示例：
+
+```basic
+LET rs485 = UART_OPEN(1, "RS485")
+DIM regs(3)
+IF MODBUS_READ_HOLD_REGS(rs485, 1, 0, 2, regs) THEN
+  PRINT regs(0); ","; regs(1); ","; regs(2); ","; regs(3)
+END IF
+```

@@ -17,10 +17,14 @@ extern I2C_HandleTypeDef hi2c1;
 extern IWDG_HandleTypeDef hiwdg;
 extern RTC_HandleTypeDef hrtc;
 
-#define BSP_DEBUG_UART_HANDLE (&huart2)
-#define BSP_RS485_UART_HANDLE (&huart1)
-#define BSP_AIR724_UART_HANDLE (&huart4)
-#define BSP_RS232_UART_HANDLE (&huart5)
+#define BSP_UART1_HANDLE      (&huart1)
+#define BSP_UART2_HANDLE      (&huart2)
+#define BSP_UART4_HANDLE      (&huart4)
+#define BSP_UART5_HANDLE      (&huart5)
+
+#define BSP_DEBUG_UART_HANDLE  BSP_UART2_HANDLE
+#define BSP_RS485_UART_HANDLE  BSP_UART1_HANDLE
+#define BSP_RS232_UART_HANDLE  BSP_UART5_HANDLE
 #define BSP_AT24C_I2C_HANDLE  (&hi2c1)
 #define BSP_IWDG_HANDLE       (&hiwdg)
 #define BSP_RTC_HANDLE        (&hrtc)
