@@ -21,6 +21,18 @@
 - `MQTT_OVERFLOW()`：返回因收件箱满而丢弃的消息数量。
 - `BASIC_DELAY(ms)` / `BASIC_TICKS()`：脚本延时和系统 tick 辅助函数。
 
+## 配置 / 网络 函数
+
+- `CONFIG_GET(key$[, default$])`：读取当前配置值，返回字符串。
+- `CONFIG_SET(key$, value)`：修改当前配置草稿，`value` 可直接传字符串或数字。
+- `CONFIG_APPLY()`：把当前草稿应用到运行态；`wired/auto` 会按当前 `local_ip/gateway/mask` 重刷 CH395 配置，`4g` 则切到 Air724UG。
+- `CONFIG_SAVE()`：把当前配置写入 EEPROM。
+- `CONFIG_RESET()`：恢复默认配置草稿。
+- `NETWORK_USE(mode$[, save])`：直接切换 `auto|wired|4g`，可选 `save=1` 顺手落盘。
+- `NETWORK_MODE()` / `NETWORK_LINK()` / `NETWORK_READY()`：读取当前配置模式、当前活动链路和链路就绪状态。
+
+其中 `wired` 对应 CH395Q/UART4/CN2，`4g` 对应 Air724UG/UART4。
+
 ## JSON 函数
 
 - `JSON_PARSE(text$)`：把 JSON 文本解析成句柄，失败返回 `NIL`。
@@ -65,6 +77,16 @@
 示例：
 
 ```basic
+CONFIG_SET("network_mode", "wired")
+CONFIG_SET("mqtt_ip", "192.168.137.110")
+CONFIG_SET("mqtt_port", 1883)
+CONFIG_SET("mqtt_user", "d0001")
+CONFIG_SET("mqtt_password", "auto")
+CONFIG_SET("local_ip", "192.168.137.201")
+CONFIG_SET("gateway", "192.168.137.11")
+CONFIG_SET("mask", "255.255.255.0")
+CONFIG_APPLY()
+
 LET rs485 = UART_OPEN(1, "RS485")
 DIM regs(3)
 IF MODBUS_READ_HOLD_REGS(rs485, 1, 0, 2, regs) THEN

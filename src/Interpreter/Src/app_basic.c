@@ -2,6 +2,7 @@
 
 #include "Common/Inc/log.h"
 #include "Interpreter/Inc/basic.h"
+#include "Interpreter/Inc/basic_config_api.h"
 #include "Interpreter/Inc/basic_json.h"
 #include "Interpreter/Inc/basic_modbus.h"
 #include "Interpreter/Inc/basic_mqtt.h"
@@ -109,6 +110,7 @@ static ErrorStatus app_basic_load_from_slot(app_basic_slot_t slot) {
   if (basic_uart_register(app_basic_interpreter) != SUCCESS ||
       basic_modbus_register(app_basic_interpreter) != SUCCESS ||
       basic_json_register(app_basic_interpreter) != SUCCESS ||
+      basic_config_register(app_basic_interpreter) != SUCCESS ||
       basic_mqtt_register(app_basic_interpreter) != SUCCESS) {
     app_basic_close_current();
     return ERROR;

@@ -52,6 +52,7 @@ target_sources(STM32F103VETX PRIVATE
 	# Interpreter
 	${SRC_ROOT}/Interpreter/Src/app_basic.c
 	${SRC_ROOT}/Interpreter/Src/basic.c
+	${SRC_ROOT}/Interpreter/Src/basic_config_api.c
 	${SRC_ROOT}/Interpreter/Src/basic_json.c
 	${SRC_ROOT}/Interpreter/Src/basic_modbus.c
 	${SRC_ROOT}/Interpreter/Src/basic_mqtt.c
