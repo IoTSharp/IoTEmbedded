@@ -21,6 +21,24 @@
 - `MQTT_OVERFLOW()`：返回因收件箱满而丢弃的消息数量。
 - `BASIC_DELAY(ms)` / `BASIC_TICKS()`：脚本延时和系统 tick 辅助函数。
 
+## JSON 函数
+
+- `JSON_PARSE(text$)`：把 JSON 文本解析成句柄，失败返回 `NIL`。
+- `JSON_OBJECT()` / `JSON_ARRAY()` / `JSON_STRING(text$)` / `JSON_NUMBER(n)` / `JSON_BOOL(v)` / `JSON_NULL()`：创建 JSON 句柄。
+- `JSON_VALID(text$)`：检查文本能否被 Parson 解析。
+- `JSON_TYPE(json[, path$])`：返回 Parson 类型码，`-1/1/2/3/4/5/6` 对应 error/null/string/number/object/array/bool。
+- `JSON_STRINGIFY(json[, path$])`：把句柄或对象字段序列化成字符串。
+- `JSON_HAS(json, path$)` / `JSON_COUNT(json[, path$])` / `JSON_KEY(json, path$, index)`：对象访问辅助函数。
+- `JSON_GET_STRING/NUMBER/INT/BOOL(json, path$[, default])`：按对象路径读取值。
+- `JSON_AT_STRING/NUMBER/INT/BOOL(json, path$, index[, default])`：按数组字段名 + 下标读取值。
+- `JSON_SET_STRING/NUMBER/BOOL/NULL/JSON(json, path$, ...)`：按对象路径写值，`path$` 为空时替换整个根值。
+- `JSON_SET_AT_STRING/NUMBER/BOOL/NULL/JSON(json, path$, index, ...)`：按数组字段名 + 下标写值。
+- `JSON_APPEND_STRING/NUMBER/BOOL/NULL/JSON(json, path$, ...)`：向数组追加元素。
+- `JSON_REMOVE(json, path$)` / `JSON_REMOVE_AT(json, path$, index)` / `JSON_CLEAR(json[, path$])`：移除或清空对象/数组。
+
+`JSON_GET` / `JSON_AT` 会返回一个独立句柄副本，适合继续读值或再组合；如果要改原对象，优先用 `JSON_SET_*` / `JSON_SET_AT_*` / `JSON_APPEND_*`。
+对象路径使用 Parson 的点号写法，例如 `"device.id"`。数组用 `JSON_AT_*` / `JSON_SET_AT_*` / `JSON_APPEND_*` 通过数组字段名 + 下标访问。
+
 ## UART / RS485 函数
 
 - `UART_OPEN(port, type$)`：按 CubeMX 生成的 UART 句柄打开端口，`port` 取 `1`/`2`/`4`/`5`，`type$` 取 `"UART"`、`"RS485"` 或 `"RS232"`，返回可传递的句柄。
@@ -52,4 +70,9 @@ DIM regs(3)
 IF MODBUS_READ_HOLD_REGS(rs485, 1, 0, 2, regs) THEN
   PRINT regs(0); ","; regs(1); ","; regs(2); ","; regs(3)
 END IF
+
+LET msg = JSON_OBJECT()
+JSON_SET_STRING(msg, "type", "heartbeat")
+JSON_SET_NUMBER(msg, "time", BASIC_TICKS())
+MQTT_PUBLISH(MQTT_BUILD_TOPIC("collector/"), JSON_STRINGIFY(msg))
 ```

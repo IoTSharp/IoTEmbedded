@@ -65,6 +65,10 @@ ErrorStatus config_write_into_eeprom(void);
 void config_process_cmd(void);
 void config_receive_cmd_byte(uint8_t byte);
 void config_reset_to_default(void);
+ErrorStatus config_get_value(const char *key, char *buf, size_t buf_size);
+ErrorStatus config_set_value(const char *key, const char *value);
+ErrorStatus config_apply_runtime(void);
+ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist);
 network_mode_t config_get_network_mode(void);
 const char *config_network_mode_name(network_mode_t mode);
 /** 平台 registerInfo 进入运行态前先检查手工保存的现场设备白名单；空表时允许平台注册用于首次联调。 */

@@ -165,8 +165,8 @@ typedef struct {
 
 static void config_clear_cmd_buf(void);
 static bool config_consume_cmd_line(char *line, size_t line_size);
-static ErrorStatus config_get_value(const char *key, char *buf, size_t buf_size);
-static ErrorStatus config_set_value(const char *key, const char *value);
+ErrorStatus config_get_value(const char *key, char *buf, size_t buf_size);
+ErrorStatus config_set_value(const char *key, const char *value);
 static ErrorStatus config_set_string(char *dst, size_t dst_size, const char *value);
 static ErrorStatus config_set_mqtt_client_id(const char *value);
 static ErrorStatus config_set_mqtt_password(const char *value);
@@ -242,7 +242,8 @@ static bool config_device_table_allows(uint16_t service_id, uint16_t manufacture
 static void config_migrate_v4(const config_v4_t *saved_config);
 static void config_migrate_legacy(const config_legacy_t *legacy_config);
 static bool config_network_mode_from_text(const char *text, network_mode_t *mode);
-static ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist);
+ErrorStatus config_apply_runtime(void);
+ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist);
 static void config_device_table_clear(void);
 static bool config_device_table_add(uint16_t service_id, uint16_t manufacture_model, uint8_t slave_addr);
 static void config_print_device_config(void);
@@ -279,6 +280,12 @@ static bool config_load_from_storage(void) {
 
 void config_reset_to_default(void) {
   memcpy(&active_config, &default_config, sizeof(active_config));
+}
+
+ErrorStatus config_apply_runtime(void) {
+  network_manager_set_mode(active_config.network_mode);
+  network_manager_poll();
+  return SUCCESS;
 }
 
 network_mode_t config_get_network_mode(void) {
@@ -582,9 +589,12 @@ static bool config_network_mode_from_text(const char *text, network_mode_t *mode
   return false;
 }
 
-static ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist) {
+ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist) {
   active_config.network_mode = mode;
-  network_manager_set_mode(mode);
+  ErrorStatus status = config_apply_runtime();
+  if (status != SUCCESS) {
+    return status;
+  }
   return persist ? config_write_into_eeprom() : SUCCESS;
 }
 
@@ -957,7 +967,7 @@ static void config_dispatch_cmd(char *line) {
   }
 }
 
-static ErrorStatus config_get_value(const char *key, char *buf, size_t buf_size) {
+ErrorStatus config_get_value(const char *key, char *buf, size_t buf_size) {
   if (strcmp(key, "version") == 0) {
     snprintf(buf, buf_size, "%s", CONFIG_VERSION);
   } else if (strcmp(key, "log_level") == 0) {
@@ -1012,7 +1022,7 @@ static ErrorStatus config_get_value(const char *key, char *buf, size_t buf_size)
   return SUCCESS;
 }
 
-static ErrorStatus config_set_value(const char *key, const char *value) {
+ErrorStatus config_set_value(const char *key, const char *value) {
   if (strcmp(key, "log_level") == 0) {
     log_level_t level;
     if (!log_level_get_enum_value_by_str_value(value, &level)) {
@@ -1173,7 +1183,7 @@ static void config_format_device_uid(char *buf, size_t buf_size) {
 static void config_print_help(void) {
   LOG_CMD_RESP("shell: help uname uptime free dmesg loglevel [level] reboot");
   LOG_CMD_RESP("auth: logout | passwd root|user <new-password>");
-  LOG_CMD_RESP("env: printenv | getenv <key> | setenv <key> <value> | saveenv | env default | config eeprom");
+  LOG_CMD_RESP("env: printenv | getenv <key> | setenv <key> <value> | saveenv | env default | config apply|eeprom");
   LOG_CMD_RESP("net: ifconfig | ip addr | route | nc -vz <host> <port> | netuse auto|wired|4g|ch395q|air724ug");
   LOG_CMD_RESP("dev: eth status|init [local gw mask]|reset");
   LOG_CMD_RESP("dev: modem status|sim|radio|cell|ip|reset|at <AT>");
@@ -1291,6 +1301,8 @@ static void config_handle_config_cmd(char *args) {
 
   if (strcmp(args, "show") == 0) {
     config_print_all();
+  } else if (strcmp(args, "apply") == 0) {
+    LOG_CMD_RESP("config apply %s", config_apply_runtime() == SUCCESS ? "ok" : "failed");
   } else if (strcmp(args, "eeprom") == 0) {
     config_print_eeprom_status();
   } else if (strcmp(args, "save") == 0) {
@@ -1316,7 +1328,7 @@ static void config_handle_config_cmd(char *args) {
       LOG_CMD_RESP("config set %s %s", key, status == SUCCESS ? "ok" : "failed");
     }
   } else {
-    LOG_CMD_RESP("usage: config show|get|set|save|reset|eeprom");
+    LOG_CMD_RESP("usage: config show|get|set|apply|save|reset|eeprom");
   }
 }
 
