@@ -5,8 +5,12 @@
 
 ## MQTT 函数
 
-- `MQTT_MAINTAIN(reconnect_ms)`：轮询 MQTT 并按需重连，返回 1 表示已就绪。
+- `MQTT_CONNECT()`：连接服务器。
+- `MQTT_DISCONNECT()`：断开连接。
+- `MQTT_CONNECTED()`：返回是否已建立 MQTT 会话。
+- `MQTT_MAINTAIN(reconnect_ms)`：轮询 MQTT 并按需重连/保活，返回 1 表示已连接；业务 topic 仍由脚本订阅。
 - `MQTT_READY()`：返回 MQTT 是否已经完成连接和订阅。
+- `MQTT_PING()`：主动发送 ping。
 - `MQTT_BUILD_TOPIC(prefix$)`：返回 `prefix$ + mqtt.user_name`，适合平台按采集器 ID 结尾的 topic。
 - `MQTT_SUBSCRIBE(topic$)`：订阅完整 topic。
 - `MQTT_PUBLISH(topic$, payload$)`：向完整 topic 发布 payload。

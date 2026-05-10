@@ -87,6 +87,7 @@ static bool mqtt_client_subscribe_platform_topics_locked(void);
 static bool mqtt_client_ping_locked(void);
 static void mqtt_client_poll_locked(void);
 static bool mqtt_client_maintain_locked(uint32_t now_ms, uint32_t reconnect_interval_ms);
+static bool mqtt_client_maintain_connection_locked(uint32_t now_ms, uint32_t reconnect_interval_ms);
 static bool mqtt_ensure_credentials(void);
 static bool mqtt_open_tcp(void);
 static bool mqtt_send_connect(void);
@@ -280,6 +281,15 @@ bool mqtt_client_maintain(uint32_t now_ms, uint32_t reconnect_interval_ms) {
   return ok;
 }
 
+bool mqtt_client_maintain_connection(uint32_t now_ms, uint32_t reconnect_interval_ms) {
+  if (!mqtt_lock_acquire()) {
+    return false;
+  }
+  bool ok = mqtt_client_maintain_connection_locked(now_ms, reconnect_interval_ms);
+  mqtt_lock_release();
+  return ok;
+}
+
 void mqtt_client_set_message_handler(mqtt_message_handler_t handler) {
   if (!mqtt_lock_acquire()) {
     return;
@@ -378,6 +388,12 @@ static bool mqtt_client_connect_locked(void) {
   if (mqtt_config == NULL || !mqtt_ensure_credentials()) {
     return false;
   }
+  if (mqtt_state >= MQTT_CLIENT_STATE_SESSION_CONNECTED && network_socket_is_tcp_connected(MQTT_SOCKET_INDEX)) {
+    return true;
+  }
+  if (mqtt_state != MQTT_CLIENT_STATE_DISCONNECTED) {
+    mqtt_client_disconnect_locked();
+  }
   if (!mqtt_open_tcp() || !mqtt_send_connect()) {
     mqtt_client_disconnect_locked();
     return false;
@@ -400,7 +416,9 @@ static void mqtt_client_disconnect_locked(void) {
   }
   network_socket_close(MQTT_SOCKET_INDEX);
   mqtt_state = MQTT_CLIENT_STATE_DISCONNECTED;
+  mqtt_packet_flags = 0U;
   mqtt_rx_accum_len = 0U;
+  mqtt_inbox_reset();
 }
 
 static bool mqtt_client_subscribe_platform_topics_locked(void) {
@@ -454,6 +472,18 @@ static void mqtt_client_poll_locked(void) {
 }
 
 static bool mqtt_client_maintain_locked(uint32_t now_ms, uint32_t reconnect_interval_ms) {
+  if (!mqtt_client_maintain_connection_locked(now_ms, reconnect_interval_ms)) {
+    return false;
+  }
+  if (mqtt_state == MQTT_CLIENT_STATE_SESSION_CONNECTED && !mqtt_client_subscribe_platform_topics_locked()) {
+    LOG_WARNING("MQTT subscribe platform topics failed");
+    mqtt_client_disconnect_locked();
+    return false;
+  }
+  return mqtt_state == MQTT_CLIENT_STATE_SUBSCRIBED;
+}
+
+static bool mqtt_client_maintain_connection_locked(uint32_t now_ms, uint32_t reconnect_interval_ms) {
   mqtt_client_poll_locked();
   if (mqtt_config == NULL) {
     return false;
@@ -471,15 +501,13 @@ static bool mqtt_client_maintain_locked(uint32_t now_ms, uint32_t reconnect_inte
     if (!mqtt_client_connect_locked()) {
       return false;
     }
+  } else if (mqtt_state < MQTT_CLIENT_STATE_SESSION_CONNECTED) {
+    if (!mqtt_client_connect_locked()) {
+      return false;
+    }
   }
 
-  if (mqtt_state == MQTT_CLIENT_STATE_SESSION_CONNECTED && !mqtt_client_subscribe_platform_topics_locked()) {
-    LOG_WARNING("MQTT subscribe platform topics failed");
-    mqtt_client_disconnect_locked();
-    return false;
-  }
-
-  if (mqtt_state == MQTT_CLIENT_STATE_SUBSCRIBED) {
+  if (mqtt_state >= MQTT_CLIENT_STATE_SESSION_CONNECTED) {
     uint32_t keepalive_ms = (uint32_t)mqtt_config->keepalive * 1000U;
     if (keepalive_ms < 10000U) {
       keepalive_ms = 10000U;
@@ -494,7 +522,7 @@ static bool mqtt_client_maintain_locked(uint32_t now_ms, uint32_t reconnect_inte
       mqtt_last_ping_tick = now_ms;
     }
   }
-  return mqtt_state == MQTT_CLIENT_STATE_SUBSCRIBED;
+  return mqtt_state >= MQTT_CLIENT_STATE_SESSION_CONNECTED;
 }
 
 static bool mqtt_ensure_credentials(void) {

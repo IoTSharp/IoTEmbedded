@@ -45,6 +45,8 @@ bool mqtt_client_ping(void);
 void mqtt_client_poll(void);
 // 主循环维护入口：负责接收下行、断线重连、自动订阅和 keepalive PING。
 bool mqtt_client_maintain(uint32_t now_ms, uint32_t reconnect_interval_ms);
+// 通用维护入口：只负责接收下行、断线重连和 keepalive PING，不自动订阅平台 topic。
+bool mqtt_client_maintain_connection(uint32_t now_ms, uint32_t reconnect_interval_ms);
 void mqtt_client_set_message_handler(mqtt_message_handler_t handler);
 mqtt_client_state_t mqtt_client_get_state(void);
 uint16_t mqtt_client_get_packet_flags(void);
