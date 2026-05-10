@@ -2,6 +2,7 @@
 
 #include "Common/Inc/log.h"
 #include "Interpreter/Inc/basic.h"
+#include "Interpreter/Inc/basic_mqtt.h"
 
 #include <stdbool.h>
 #include <stdarg.h>
@@ -102,6 +103,10 @@ static ErrorStatus app_basic_load_from_slot(app_basic_slot_t slot) {
 
   (void)mb_set_printer(app_basic_interpreter, app_basic_printer);
   (void)mb_set_import_handler(app_basic_interpreter, app_basic_import_handler);
+  if (basic_mqtt_register(app_basic_interpreter) != SUCCESS) {
+    app_basic_close_current();
+    return ERROR;
+  }
 
   if (mb_load_string(app_basic_interpreter, app_basic_script_buffer, true) != MB_FUNC_OK) {
     app_basic_close_current();

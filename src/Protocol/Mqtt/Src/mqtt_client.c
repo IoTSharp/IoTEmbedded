@@ -36,6 +36,7 @@
 #define MQTT_PINGRESP_TIMEOUT_POLLS 8U
 #define MQTT_PUBACK_TIMEOUT_POLLS 10U
 #define MQTT_POLL_LOCK_TIMEOUT_MS 1U
+#define MQTT_INBOX_DEPTH 2U
 
 #define TOPIC_CLIENT_TO_SERVER_GET_DEVICE_INFO "/v1/devices/up/getDeviceInfo/"
 #define TOPIC_SERVER_TO_CLIENT_REGISTER_INFO "/v1/devices/down/registerInfo/"
@@ -45,6 +46,11 @@
 #define TOPIC_CLIENT_TO_SERVER_DATA "/v1/devices/up/datas/"
 #define TOPIC_SERVER_TO_CLIENT_CMD "/v1/devices/down/command/"
 #define TOPIC_CLIENT_TO_SERVER_CMD_RESP "/v1/devices/up/commandResponse/"
+
+typedef struct {
+  char topic[MQTT_TOPIC_MAX_LEN];
+  char payload[MQTT_PAYLOAD_MAX_LEN];
+} mqtt_inbox_message_t;
 
 static mqtt_config_t *mqtt_config;
 static mqtt_client_state_t mqtt_state = MQTT_CLIENT_STATE_DISCONNECTED;
@@ -56,6 +62,11 @@ static uint32_t mqtt_last_reconnect_tick;
 static uint32_t mqtt_last_ping_tick;
 static uint8_t mqtt_rx_accum[MQTT_RX_BUF_SIZE];
 static uint16_t mqtt_rx_accum_len;
+static mqtt_inbox_message_t mqtt_inbox[MQTT_INBOX_DEPTH];
+static uint8_t mqtt_inbox_head;
+static uint8_t mqtt_inbox_tail;
+static uint8_t mqtt_inbox_count;
+static uint32_t mqtt_inbox_dropped;
 /*
  * PUBLISH 需要同时组装变量头+payload 和最终 MQTT 包。启用多 RS485 设备后数据包明显变大，
  * 这里放到静态区并由 mqtt_lock 串行保护，避免两块大缓冲叠在 pem_main 线程栈上。
@@ -79,8 +90,10 @@ static bool mqtt_client_maintain_locked(uint32_t now_ms, uint32_t reconnect_inte
 static bool mqtt_ensure_credentials(void);
 static bool mqtt_open_tcp(void);
 static bool mqtt_send_connect(void);
-static bool mqtt_subscribe_topic(const char *topic_prefix);
-static bool mqtt_publish(const char *topic_prefix, const char *payload);
+static bool mqtt_subscribe_topic_prefix(const char *topic_prefix);
+static bool mqtt_subscribe_full_topic(const char *topic);
+static bool mqtt_publish_topic_prefix(const char *topic_prefix, const char *payload);
+static bool mqtt_publish_full_topic(const char *topic, const char *payload);
 static bool mqtt_send_packet(const uint8_t *packet, uint16_t length);
 static uint16_t mqtt_next_packet_id(void);
 static uint16_t mqtt_encode_remaining_length(uint8_t *buffer, uint32_t length);
@@ -91,6 +104,9 @@ static void mqtt_handle_packet(const uint8_t *packet, uint16_t length);
 static void mqtt_handle_publish(const uint8_t *packet, uint16_t length, uint8_t header);
 static void mqtt_send_puback(uint16_t packet_id);
 static uint16_t mqtt_decode_remaining_length(const uint8_t *packet, uint16_t length, uint16_t *remaining_offset);
+static void mqtt_inbox_reset(void);
+static void mqtt_inbox_push(const char *topic, const char *payload);
+static bool mqtt_inbox_pop(char *topic, uint16_t topic_len, char *payload, uint16_t payload_len);
 
 static void mqtt_lock_init(void) {
 #if APP_ENABLE_CMSIS_RTOS
@@ -145,6 +161,7 @@ void mqtt_client_init(mqtt_config_t *config) {
   mqtt_last_reconnect_tick = 0U;
   mqtt_last_ping_tick = 0U;
   mqtt_rx_accum_len = 0U;
+  mqtt_inbox_reset();
   (void)mqtt_ensure_credentials();
   mqtt_lock_release();
 }
@@ -175,11 +192,23 @@ bool mqtt_client_subscribe_platform_topics(void) {
   return ok;
 }
 
+bool mqtt_client_subscribe_topic(const char *topic) {
+  if (!mqtt_lock_acquire()) {
+    return false;
+  }
+  bool ok = mqtt_subscribe_full_topic(topic);
+  if (ok) {
+    mqtt_state = MQTT_CLIENT_STATE_SUBSCRIBED;
+  }
+  mqtt_lock_release();
+  return ok;
+}
+
 bool mqtt_client_publish_get_device_info(const char *payload) {
   if (!mqtt_lock_acquire()) {
     return false;
   }
-  bool ok = mqtt_publish(TOPIC_CLIENT_TO_SERVER_GET_DEVICE_INFO, payload);
+  bool ok = mqtt_publish_topic_prefix(TOPIC_CLIENT_TO_SERVER_GET_DEVICE_INFO, payload);
   mqtt_lock_release();
   return ok;
 }
@@ -188,7 +217,7 @@ bool mqtt_client_publish_update(const char *payload) {
   if (!mqtt_lock_acquire()) {
     return false;
   }
-  bool ok = mqtt_publish(TOPIC_CLIENT_TO_SERVER_UPDATE, payload);
+  bool ok = mqtt_publish_topic_prefix(TOPIC_CLIENT_TO_SERVER_UPDATE, payload);
   mqtt_lock_release();
   return ok;
 }
@@ -197,7 +226,7 @@ bool mqtt_client_publish_data(const char *payload) {
   if (!mqtt_lock_acquire()) {
     return false;
   }
-  bool ok = mqtt_publish(TOPIC_CLIENT_TO_SERVER_DATA, payload);
+  bool ok = mqtt_publish_topic_prefix(TOPIC_CLIENT_TO_SERVER_DATA, payload);
   mqtt_lock_release();
   return ok;
 }
@@ -206,7 +235,16 @@ bool mqtt_client_publish_command_response(const char *payload) {
   if (!mqtt_lock_acquire()) {
     return false;
   }
-  bool ok = mqtt_publish(TOPIC_CLIENT_TO_SERVER_CMD_RESP, payload);
+  bool ok = mqtt_publish_topic_prefix(TOPIC_CLIENT_TO_SERVER_CMD_RESP, payload);
+  mqtt_lock_release();
+  return ok;
+}
+
+bool mqtt_client_publish_topic(const char *topic, const char *payload) {
+  if (!mqtt_lock_acquire()) {
+    return false;
+  }
+  bool ok = mqtt_publish_full_topic(topic, payload);
   mqtt_lock_release();
   return ok;
 }
@@ -307,6 +345,35 @@ void mqtt_client_build_topic(char *buffer, uint16_t buffer_len, const char *pref
   mqtt_lock_release();
 }
 
+uint8_t mqtt_client_pending_messages(void) {
+  uint8_t count;
+  if (!mqtt_lock_acquire()) {
+    return 0U;
+  }
+  count = mqtt_inbox_count;
+  mqtt_lock_release();
+  return count;
+}
+
+bool mqtt_client_read_message(char *topic, uint16_t topic_len, char *payload, uint16_t payload_len) {
+  if (!mqtt_lock_acquire()) {
+    return false;
+  }
+  bool ok = mqtt_inbox_pop(topic, topic_len, payload, payload_len);
+  mqtt_lock_release();
+  return ok;
+}
+
+uint32_t mqtt_client_get_dropped_message_count(void) {
+  uint32_t dropped;
+  if (!mqtt_lock_acquire()) {
+    return 0U;
+  }
+  dropped = mqtt_inbox_dropped;
+  mqtt_lock_release();
+  return dropped;
+}
+
 static bool mqtt_client_connect_locked(void) {
   if (mqtt_config == NULL || !mqtt_ensure_credentials()) {
     return false;
@@ -340,9 +407,9 @@ static bool mqtt_client_subscribe_platform_topics_locked(void) {
   if (mqtt_state < MQTT_CLIENT_STATE_SESSION_CONNECTED) {
     return false;
   }
-  if (!mqtt_subscribe_topic(TOPIC_SERVER_TO_CLIENT_REGISTER_INFO) ||
-      !mqtt_subscribe_topic(TOPIC_SERVER_TO_CLIENT_UPDATE_RESP) ||
-      !mqtt_subscribe_topic(TOPIC_SERVER_TO_CLIENT_CMD)) {
+  if (!mqtt_subscribe_topic_prefix(TOPIC_SERVER_TO_CLIENT_REGISTER_INFO) ||
+      !mqtt_subscribe_topic_prefix(TOPIC_SERVER_TO_CLIENT_UPDATE_RESP) ||
+      !mqtt_subscribe_topic_prefix(TOPIC_SERVER_TO_CLIENT_CMD)) {
     return false;
   }
   mqtt_state = MQTT_CLIENT_STATE_SUBSCRIBED;
@@ -497,11 +564,18 @@ static bool mqtt_send_connect(void) {
   return mqtt_send_packet(packet, (uint16_t)(1U + rl_len + offset));
 }
 
-static bool mqtt_subscribe_topic(const char *topic_prefix) {
+static bool mqtt_subscribe_topic_prefix(const char *topic_prefix) {
   char topic[MQTT_TOPIC_MAX_LEN] = {0};
+  mqtt_client_build_topic(topic, sizeof(topic), topic_prefix);
+  return mqtt_subscribe_full_topic(topic);
+}
+
+static bool mqtt_subscribe_full_topic(const char *topic) {
   uint8_t payload[MQTT_TX_BUF_SIZE] = {0};
   uint16_t offset = 0U;
-  mqtt_client_build_topic(topic, sizeof(topic), topic_prefix);
+  if (mqtt_state < MQTT_CLIENT_STATE_SESSION_CONNECTED || topic == NULL || topic[0] == '\0') {
+    return false;
+  }
   uint16_t packet_id = mqtt_next_packet_id();
   payload[offset++] = (uint8_t)(packet_id >> 8U);
   payload[offset++] = (uint8_t)packet_id;
@@ -529,16 +603,20 @@ static bool mqtt_subscribe_topic(const char *topic_prefix) {
   return true;
 }
 
-static bool mqtt_publish(const char *topic_prefix, const char *payload) {
-  if (mqtt_state < MQTT_CLIENT_STATE_SESSION_CONNECTED || payload == NULL) {
+static bool mqtt_publish_topic_prefix(const char *topic_prefix, const char *payload) {
+  char topic[MQTT_TOPIC_MAX_LEN] = {0};
+  mqtt_client_build_topic(topic, sizeof(topic), topic_prefix);
+  return mqtt_publish_full_topic(topic, payload);
+}
+
+static bool mqtt_publish_full_topic(const char *topic, const char *payload) {
+  if (mqtt_state < MQTT_CLIENT_STATE_SESSION_CONNECTED || topic == NULL || topic[0] == '\0' || payload == NULL) {
     return false;
   }
-  char topic[MQTT_TOPIC_MAX_LEN] = {0};
   uint16_t offset = 0U;
   uint16_t payload_len = (uint16_t)strlen(payload);
   memset(mqtt_tx_variable, 0, sizeof(mqtt_tx_variable));
   memset(mqtt_tx_packet, 0, sizeof(mqtt_tx_packet));
-  mqtt_client_build_topic(topic, sizeof(topic), topic_prefix);
   if (!mqtt_write_utf8(mqtt_tx_variable, sizeof(mqtt_tx_variable), &offset, topic)) {
     return false;
   }
@@ -728,6 +806,7 @@ static void mqtt_handle_publish(const uint8_t *packet, uint16_t length, uint8_t 
   }
   char payload[MQTT_PAYLOAD_MAX_LEN] = {0};
   memcpy(payload, &packet[pos], payload_len);
+  mqtt_inbox_push(topic, payload);
   if (mqtt_message_handler != NULL) {
     mqtt_message_handler(topic, payload);
   }
@@ -757,4 +836,41 @@ static uint16_t mqtt_decode_remaining_length(const uint8_t *packet, uint16_t len
   } while ((encoded & 0x80U) != 0U);
   *remaining_offset = (uint16_t)(offset - 1U);
   return (uint16_t)value;
+}
+
+static void mqtt_inbox_reset(void) {
+  memset(mqtt_inbox, 0, sizeof(mqtt_inbox));
+  mqtt_inbox_head = 0U;
+  mqtt_inbox_tail = 0U;
+  mqtt_inbox_count = 0U;
+  mqtt_inbox_dropped = 0U;
+}
+
+static void mqtt_inbox_push(const char *topic, const char *payload) {
+  if (topic == NULL || payload == NULL) {
+    return;
+  }
+  if (mqtt_inbox_count >= MQTT_INBOX_DEPTH) {
+    mqtt_inbox_tail = (uint8_t)((mqtt_inbox_tail + 1U) % MQTT_INBOX_DEPTH);
+    mqtt_inbox_count--;
+    mqtt_inbox_dropped++;
+  }
+
+  (void)snprintf(mqtt_inbox[mqtt_inbox_head].topic, sizeof(mqtt_inbox[mqtt_inbox_head].topic), "%s", topic);
+  (void)snprintf(mqtt_inbox[mqtt_inbox_head].payload, sizeof(mqtt_inbox[mqtt_inbox_head].payload), "%s", payload);
+  mqtt_inbox_head = (uint8_t)((mqtt_inbox_head + 1U) % MQTT_INBOX_DEPTH);
+  mqtt_inbox_count++;
+}
+
+static bool mqtt_inbox_pop(char *topic, uint16_t topic_len, char *payload, uint16_t payload_len) {
+  if (topic == NULL || topic_len == 0U || payload == NULL || payload_len == 0U || mqtt_inbox_count == 0U) {
+    return false;
+  }
+
+  (void)snprintf(topic, topic_len, "%s", mqtt_inbox[mqtt_inbox_tail].topic);
+  (void)snprintf(payload, payload_len, "%s", mqtt_inbox[mqtt_inbox_tail].payload);
+  memset(&mqtt_inbox[mqtt_inbox_tail], 0, sizeof(mqtt_inbox[mqtt_inbox_tail]));
+  mqtt_inbox_tail = (uint8_t)((mqtt_inbox_tail + 1U) % MQTT_INBOX_DEPTH);
+  mqtt_inbox_count--;
+  return true;
 }

@@ -35,10 +35,12 @@ void mqtt_client_init(mqtt_config_t *config);
 bool mqtt_client_connect(void);
 void mqtt_client_disconnect(void);
 bool mqtt_client_subscribe_platform_topics(void);
+bool mqtt_client_subscribe_topic(const char *topic);
 bool mqtt_client_publish_get_device_info(const char *payload);
 bool mqtt_client_publish_update(const char *payload);
 bool mqtt_client_publish_data(const char *payload);
 bool mqtt_client_publish_command_response(const char *payload);
+bool mqtt_client_publish_topic(const char *topic, const char *payload);
 bool mqtt_client_ping(void);
 void mqtt_client_poll(void);
 // 主循环维护入口：负责接收下行、断线重连、自动订阅和 keepalive PING。
@@ -50,6 +52,9 @@ void mqtt_client_clear_packet_flags(uint16_t flags);
 uint16_t mqtt_client_get_last_puback_id(void);
 bool mqtt_client_is_ready(void);
 void mqtt_client_build_topic(char *buffer, uint16_t buffer_len, const char *prefix);
+uint8_t mqtt_client_pending_messages(void);
+bool mqtt_client_read_message(char *topic, uint16_t topic_len, char *payload, uint16_t payload_len);
+uint32_t mqtt_client_get_dropped_message_count(void);
 
 #ifdef __cplusplus
 }

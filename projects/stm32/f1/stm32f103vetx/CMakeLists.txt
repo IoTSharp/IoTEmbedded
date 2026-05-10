@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 project(STM32F103VETX LANGUAGES C CXX ASM)
 
-# Single source root. Cross-module headers are referenced as "<Module>/<header>.h"
+# Single source root. Cross-module headers are referenced as "<Module>/Inc/<header>.h"
 set(SRC_ROOT ${CMAKE_CURRENT_LIST_DIR}/../../../../src)
 set(PLATFORM_ROOT ${SRC_ROOT}/Platform/stm32/f1/stm32f103vetx)
 
@@ -52,6 +52,7 @@ target_sources(STM32F103VETX PRIVATE
 	# Interpreter
 	${SRC_ROOT}/Interpreter/Src/app_basic.c
 	${SRC_ROOT}/Interpreter/Src/basic.c
+	${SRC_ROOT}/Interpreter/Src/basic_mqtt.c
 	# Storage
 	${SRC_ROOT}/Storage/Src/app_eeprom.c
 	${SRC_ROOT}/Storage/Src/bsp_eeprom.c
