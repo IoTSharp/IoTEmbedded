@@ -6,6 +6,7 @@
 #include "Bus/Rs485/Inc/bsp_rs485.h"
 #include "Bus/Uart/Inc/bsp_uart.h"
 #include "Board/Inc/bsp_watchdog.h"
+#include "Interpreter/Inc/app_basic.h"
 #include "Network/Ch395/Inc/ch395_board.h"
 #include "Network/Ch395/Inc/ch395_defs.h"
 #include "Network/Ch395/Inc/ch395_driver.h"
@@ -31,6 +32,7 @@ void app_init(void) {
   (void)bsp_watchdog_refresh();
   config_init();
   log_init(&active_config.log);
+  app_basic_init();
 
   network_mode_t network_mode = config_get_network_mode();
   const char *ch395_link_name = "CH395Q on UART4/CN2";
@@ -85,7 +87,6 @@ void app_process_once(uint32_t now_ms) {
     (void)modbus_test_read_hold_register(1U, 0x0000U, 1U);
   }
 #endif
-  config_process_cmd();
   network_manager_poll();
   // MQTT 只依赖 network_socket 工厂接口，链路切换时由网络层关闭旧 socket 并在下一轮重连。
   (void)mqtt_client_maintain(now_ms, active_config.loop.keep_in_touch_with_server_interval);
@@ -97,6 +98,7 @@ void app_process_once(uint32_t now_ms) {
 
 void app_loop(void) {
   app_process_once(HAL_GetTick());
+  config_process_cmd();
   (void)bsp_watchdog_refresh();
   HAL_Delay(1000U);
 }

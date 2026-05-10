@@ -1247,12 +1247,13 @@ static void config_print_rtos_status(void) {
   /* 心跳由关键业务线程主动上报，现场可区分“调度未起”和“某线程卡死”。 */
   LOG_CMD_RESP("rtos.enabled=%u started=%u alive=%u", rtos.enabled ? 1U : 0U, rtos.started ? 1U : 0U,
                rtos.heartbeats_alive ? 1U : 0U);
-  LOG_CMD_RESP("rtos.stack.main=%lu mqtt_rx=%lu watchdog=%lu", rtos.main_stack_size, rtos.mqtt_rx_stack_size,
-               rtos.watchdog_stack_size);
-  LOG_CMD_RESP("rtos.stack_free.main=%lu mqtt_rx=%lu watchdog=%lu", rtos.main_stack_free, rtos.mqtt_rx_stack_free,
-               rtos.watchdog_stack_free);
-  LOG_CMD_RESP("rtos.heartbeat.main=%lu mqtt_rx=%lu timeout=%lu", rtos.main_last_heartbeat_ms,
-               rtos.mqtt_rx_last_heartbeat_ms, rtos.heartbeat_timeout_ms);
+  LOG_CMD_RESP("rtos.stack.main=%lu mqtt_rx=%lu basic=%lu debug=%lu watchdog=%lu", rtos.main_stack_size,
+               rtos.mqtt_rx_stack_size, rtos.basic_stack_size, rtos.debug_stack_size, rtos.watchdog_stack_size);
+  LOG_CMD_RESP("rtos.stack_free.main=%lu mqtt_rx=%lu basic=%lu debug=%lu watchdog=%lu", rtos.main_stack_free,
+               rtos.mqtt_rx_stack_free, rtos.basic_stack_free, rtos.debug_stack_free, rtos.watchdog_stack_free);
+  LOG_CMD_RESP("rtos.heartbeat.main=%lu mqtt_rx=%lu basic=%lu debug=%lu timeout=%lu", rtos.main_last_heartbeat_ms,
+               rtos.mqtt_rx_last_heartbeat_ms, rtos.basic_last_heartbeat_ms, rtos.debug_last_heartbeat_ms,
+               rtos.heartbeat_timeout_ms);
 }
 
 static void config_print_all(void) {

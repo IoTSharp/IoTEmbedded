@@ -4,6 +4,7 @@
 #include "Board/Inc/bsp_watchdog.h"
 #include "Config/Inc/config.h"
 #include "Common/Inc/log.h"
+#include "Interpreter/Inc/app_basic.h"
 #include "Protocol/Modbus/Inc/modbus_core_master.h"
 #include "Protocol/Mqtt/Inc/mqtt_client.h"
 
@@ -13,8 +14,10 @@
 #include "cmsis_os2.h"
 #endif
 
-#define APP_RTOS_MAIN_THREAD_STACK 6144U
+#define APP_RTOS_MAIN_THREAD_STACK 4096U
 #define APP_RTOS_MQTT_RX_THREAD_STACK 3072U
+#define APP_RTOS_BASIC_THREAD_STACK 4096U
+#define APP_RTOS_DEBUG_THREAD_STACK 2048U
 #define APP_RTOS_WATCHDOG_THREAD_STACK 768U
 #define APP_RTOS_DEFAULT_WATCHDOG_TIMEOUT_MS 30000U
 #define APP_RTOS_MIN_WATCHDOG_FEED_INTERVAL_MS 10000U
@@ -25,6 +28,8 @@ static volatile bool app_rtos_scheduler_started = false;
 #if APP_ENABLE_CMSIS_RTOS
 static osThreadId_t app_rtos_main_thread_id;
 static osThreadId_t app_rtos_mqtt_rx_thread_id;
+static osThreadId_t app_rtos_basic_thread_id;
+static osThreadId_t app_rtos_debug_thread_id;
 static osThreadId_t app_rtos_watchdog_thread_id;
 #endif
 
@@ -33,6 +38,8 @@ static uint32_t app_rtos_normalize_interval(uint32_t interval_ms, uint32_t fallb
 #if APP_ENABLE_CMSIS_RTOS
 static void app_rtos_main_thread(void *argument);
 static void app_rtos_mqtt_rx_thread(void *argument);
+static void app_rtos_basic_thread(void *argument);
+static void app_rtos_debug_thread(void *argument);
 static void app_rtos_watchdog_thread(void *argument);
 #endif
 
@@ -55,6 +62,16 @@ bool app_rtos_start(void) {
     .priority = osPriorityAboveNormal,
     .stack_size = APP_RTOS_MQTT_RX_THREAD_STACK,
   };
+  const osThreadAttr_t basic_attr = {
+    .name = "basic",
+    .priority = osPriorityBelowNormal,
+    .stack_size = APP_RTOS_BASIC_THREAD_STACK,
+  };
+  const osThreadAttr_t debug_attr = {
+    .name = "debug",
+    .priority = osPriorityLow,
+    .stack_size = APP_RTOS_DEBUG_THREAD_STACK,
+  };
   const osThreadAttr_t watchdog_attr = {
     .name = "watchdog",
     .priority = osPriorityHigh,
@@ -68,8 +85,11 @@ bool app_rtos_start(void) {
 
   app_rtos_main_thread_id = osThreadNew(app_rtos_main_thread, NULL, &main_attr);
   app_rtos_mqtt_rx_thread_id = osThreadNew(app_rtos_mqtt_rx_thread, NULL, &mqtt_rx_attr);
+  app_rtos_basic_thread_id = osThreadNew(app_rtos_basic_thread, NULL, &basic_attr);
+  app_rtos_debug_thread_id = osThreadNew(app_rtos_debug_thread, NULL, &debug_attr);
   app_rtos_watchdog_thread_id = osThreadNew(app_rtos_watchdog_thread, NULL, &watchdog_attr);
-  if (app_rtos_main_thread_id == NULL || app_rtos_mqtt_rx_thread_id == NULL || app_rtos_watchdog_thread_id == NULL) {
+  if (app_rtos_main_thread_id == NULL || app_rtos_mqtt_rx_thread_id == NULL || app_rtos_basic_thread_id == NULL ||
+      app_rtos_debug_thread_id == NULL || app_rtos_watchdog_thread_id == NULL) {
     LOG_ERROR("RTOS thread create failed");
     return false;
   }
@@ -129,18 +149,26 @@ app_rtos_status_t app_rtos_get_status(uint32_t now_ms, uint32_t timeout_ms) {
     .started = app_rtos_scheduler_started,
     .main_stack_size = APP_RTOS_MAIN_THREAD_STACK,
     .mqtt_rx_stack_size = APP_RTOS_MQTT_RX_THREAD_STACK,
+    .basic_stack_size = APP_RTOS_BASIC_THREAD_STACK,
+    .debug_stack_size = APP_RTOS_DEBUG_THREAD_STACK,
     .watchdog_stack_size = APP_RTOS_WATCHDOG_THREAD_STACK,
 #if APP_ENABLE_CMSIS_RTOS
     .main_stack_free = osThreadGetStackSpace(app_rtos_main_thread_id),
     .mqtt_rx_stack_free = osThreadGetStackSpace(app_rtos_mqtt_rx_thread_id),
+    .basic_stack_free = osThreadGetStackSpace(app_rtos_basic_thread_id),
+    .debug_stack_free = osThreadGetStackSpace(app_rtos_debug_thread_id),
     .watchdog_stack_free = osThreadGetStackSpace(app_rtos_watchdog_thread_id),
 #else
     .main_stack_free = 0U,
     .mqtt_rx_stack_free = 0U,
+    .basic_stack_free = 0U,
+    .debug_stack_free = 0U,
     .watchdog_stack_free = 0U,
 #endif
     .main_last_heartbeat_ms = app_rtos_heartbeat_ticks[APP_RTOS_HEARTBEAT_MAIN],
     .mqtt_rx_last_heartbeat_ms = app_rtos_heartbeat_ticks[APP_RTOS_HEARTBEAT_MQTT_RX],
+    .basic_last_heartbeat_ms = app_rtos_heartbeat_ticks[APP_RTOS_HEARTBEAT_BASIC],
+    .debug_last_heartbeat_ms = app_rtos_heartbeat_ticks[APP_RTOS_HEARTBEAT_DEBUG],
     .heartbeat_timeout_ms = timeout_ms,
     .heartbeats_alive = app_rtos_all_heartbeats_alive(now_ms, timeout_ms),
   };
@@ -175,6 +203,33 @@ static void app_rtos_mqtt_rx_thread(void *argument) {
   }
 }
 
+static void app_rtos_basic_thread(void *argument) {
+  (void)argument;
+
+  if (app_basic_reload_and_run(APP_BASIC_SLOT_PRIMARY) == SUCCESS) {
+    app_basic_status_t status = app_basic_get_status();
+    LOG_INFO("BASIC script thread executed %s size=%lu", status.loaded_name, (uint32_t)status.loaded_size);
+  } else {
+    LOG_WARNING("BASIC script thread idle: no runnable script");
+  }
+
+  for (;;) {
+    app_rtos_mark_heartbeat(APP_RTOS_HEARTBEAT_BASIC, osKernelGetTickCount());
+    osDelay(1000U);
+  }
+}
+
+static void app_rtos_debug_thread(void *argument) {
+  (void)argument;
+
+  for (;;) {
+    const uint32_t now_ms = osKernelGetTickCount();
+    config_process_cmd();
+    app_rtos_mark_heartbeat(APP_RTOS_HEARTBEAT_DEBUG, now_ms);
+    osDelay(20U);
+  }
+}
+
 static void app_rtos_watchdog_thread(void *argument) {
   (void)argument;
   const uint32_t feed_interval_ms =
@@ -190,8 +245,10 @@ static void app_rtos_watchdog_thread(void *argument) {
       /* 任一关键线程不再更新心跳时停止喂狗，让 IWDG 复位；不要在这里强行重启单线程。 */
       uint32_t main_age = now_ms - app_rtos_heartbeat_ticks[APP_RTOS_HEARTBEAT_MAIN];
       uint32_t mqtt_rx_age = now_ms - app_rtos_heartbeat_ticks[APP_RTOS_HEARTBEAT_MQTT_RX];
-      LOG_FATAL("stop feed watchdog: RTOS heartbeat timeout main_age=%lu mqtt_rx_age=%lu timeout=%lu", main_age,
-                mqtt_rx_age, heartbeat_timeout_ms);
+      uint32_t basic_age = now_ms - app_rtos_heartbeat_ticks[APP_RTOS_HEARTBEAT_BASIC];
+      uint32_t debug_age = now_ms - app_rtos_heartbeat_ticks[APP_RTOS_HEARTBEAT_DEBUG];
+      LOG_FATAL("stop feed watchdog: RTOS heartbeat timeout main=%lu mqtt_rx=%lu basic=%lu debug=%lu timeout=%lu",
+                main_age, mqtt_rx_age, basic_age, debug_age, heartbeat_timeout_ms);
       return;
     }
     (void)bsp_watchdog_refresh();

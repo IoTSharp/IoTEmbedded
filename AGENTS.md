@@ -27,6 +27,7 @@ src/<Module>[/<SubModule>]/
 | `Common/` | 公共工具（log、md5、util、通用类型） |
 | `Config/` | 配置 / 网络配置 |
 | `Devices/` | 业务设备抽象（空调、电表、开关、传感器等） |
+| `Interpreter/` | BASIC 核心解释器、运行封装、脚本加载适配 |
 | `Modem/` | 模组（Air724 等） |
 | `Network/` | 网络管理、Socket、时间同步；`Network/Ch395/` 为 CH395 子模块 |
 | `Protocol/Modbus/`, `Protocol/Mqtt/`, `Protocol/Platform/` | 协议层 |
@@ -70,7 +71,7 @@ src/<Module>[/<SubModule>]/
   造成同一 .obj 出现在 `BSP.dir/` 和 `<Exe>.dir/`，链接阶段触发数百条
   `multiple definition` 错误（`main` / `SystemInit` / 所有 `HAL_*` / FreeRTOS
   内核与 IRQ handler 全部命中）。用户 target 只列业务源码（Application、Board、
-  Bus、Common、Config、Devices、Modem、Network、Protocol、Storage、ThirdParty/Parson）。
+  Bus、Common、Config、Devices、Interpreter、Modem、Network、Protocol、Storage、ThirdParty/Parson）。
 
 ## 4. 文件操作规范
 
@@ -87,7 +88,7 @@ src/<Module>[/<SubModule>]/
 1. `git status` 确认 rename 而非 add+delete。
 2. grep 校验：
    ```
-   ^#include "(Application|Board|Bus/...|Common|Config|Devices|Modem|Network|Network/Ch395|Protocol/Modbus|Protocol/Mqtt|Protocol/Platform|Storage)/[A-Za-z0-9_]+\.h"
+   ^#include "(Application|Board|Bus/...|Common|Config|Devices|Interpreter|Modem|Network|Network/Ch395|Protocol/Modbus|Protocol/Mqtt|Protocol/Platform|Storage)/[A-Za-z0-9_]+\.h"
    ```
    返回 0 命中（即不存在缺少 `/Inc/` 段的模块前缀包含）。
 3. 在 VisualGDB / CMake 构建一次，确保所有 include 路径解析成功。

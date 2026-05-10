@@ -49,6 +49,9 @@ target_sources(STM32F103VETX PRIVATE
 	${SRC_ROOT}/Common/Src/util.c
 	# Config
 	${SRC_ROOT}/Config/Src/config.c
+	# Interpreter
+	${SRC_ROOT}/Interpreter/Src/app_basic.c
+	${SRC_ROOT}/Interpreter/Src/basic.c
 	# Storage
 	${SRC_ROOT}/Storage/Src/app_eeprom.c
 	${SRC_ROOT}/Storage/Src/bsp_eeprom.c
@@ -83,6 +86,7 @@ target_sources(STM32F103VETX PRIVATE
 	${SRC_ROOT}/Protocol/Modbus/Src/modbus_core_master.c
 	# ThirdParty
 	${SRC_ROOT}/ThirdParty/Parson/parson.c
+	${SRC_ROOT}/ThirdParty/Parson/parson_ex.c
 	# NOTE: CubeMX-generated sources under ${PLATFORM_ROOT} (Core/Src, Drivers,
 	# Middlewares/FreeRTOS, CMSIS_RTOS_V2) are owned by the auto-generated BSP
 	# target via find_bsp() / add_bsp_based_executable(). Do NOT list them here

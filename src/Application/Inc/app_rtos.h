@@ -16,6 +16,8 @@ extern "C" {
 typedef enum {
   APP_RTOS_HEARTBEAT_MAIN = 0,
   APP_RTOS_HEARTBEAT_MQTT_RX,
+  APP_RTOS_HEARTBEAT_BASIC,
+  APP_RTOS_HEARTBEAT_DEBUG,
   APP_RTOS_HEARTBEAT_COUNT,
 } app_rtos_heartbeat_t;
 
@@ -25,12 +27,18 @@ typedef struct {
   bool started;
   uint32_t main_stack_size;
   uint32_t mqtt_rx_stack_size;
+  uint32_t basic_stack_size;
+  uint32_t debug_stack_size;
   uint32_t watchdog_stack_size;
   uint32_t main_stack_free;
   uint32_t mqtt_rx_stack_free;
+  uint32_t basic_stack_free;
+  uint32_t debug_stack_free;
   uint32_t watchdog_stack_free;
   uint32_t main_last_heartbeat_ms;
   uint32_t mqtt_rx_last_heartbeat_ms;
+  uint32_t basic_last_heartbeat_ms;
+  uint32_t debug_last_heartbeat_ms;
   uint32_t heartbeat_timeout_ms;
   bool heartbeats_alive;
 } app_rtos_status_t;
