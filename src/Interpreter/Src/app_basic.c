@@ -3,6 +3,7 @@
 #include "Common/Inc/log.h"
 #include "Interpreter/Inc/basic.h"
 #include "Interpreter/Inc/basic_config_api.h"
+#include "Interpreter/Inc/basic_format.h"
 #include "Interpreter/Inc/basic_json.h"
 #include "Interpreter/Inc/basic_modbus.h"
 #include "Interpreter/Inc/basic_mqtt.h"
@@ -109,6 +110,7 @@ static ErrorStatus app_basic_load_from_slot(app_basic_slot_t slot) {
   (void)mb_set_import_handler(app_basic_interpreter, app_basic_import_handler);
   if (basic_serial_register(app_basic_interpreter) != SUCCESS ||
       basic_modbus_register(app_basic_interpreter) != SUCCESS ||
+      basic_format_register(app_basic_interpreter) != SUCCESS ||
       basic_json_register(app_basic_interpreter) != SUCCESS ||
       basic_config_register(app_basic_interpreter) != SUCCESS ||
       basic_mqtt_register(app_basic_interpreter) != SUCCESS) {
