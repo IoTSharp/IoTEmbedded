@@ -1509,6 +1509,7 @@ static int _cut_symbol(mb_interpreter_t* s, int pos, unsigned short row, unsigne
 static int _append_symbol(mb_interpreter_t* s, char* sym, bool_t* delsym, int pos, unsigned short row, unsigned short col);
 static int _create_symbol(mb_interpreter_t* s, _ls_node_t* l, char* sym, _object_t** obj, _ls_node_t*** asgn, bool_t* delsym);
 static _data_e _get_symbol_type(mb_interpreter_t* s, char* sym, _raw_t* value);
+static bool_t _try_normalize_end_if_alias(mb_interpreter_t* s, _object_t* obj, char* sym, bool_t* delsym);
 static int _parse_char(mb_interpreter_t* s, const char* str, int n, int pos, unsigned short row, unsigned short col);
 static void _set_error_pos(mb_interpreter_t* s, int pos, unsigned short row, unsigned short col);
 static char* _prev_import(mb_interpreter_t* s, char* lf, int* pos, unsigned short* row, unsigned short* col);
@@ -5252,6 +5253,10 @@ static int _create_symbol(mb_interpreter_t* s, _ls_node_t* l, char* sym, _object
 		goto _exit;
 	}
 	(*obj)->type = type;
+	if(_try_normalize_end_if_alias(s, *obj, sym, delsym)) {
+		goto _exit;
+	}
+
 	switch(type) {
 	case _DT_NIL:
 		memcpy(tmp.any, value, sizeof(_raw_t));
@@ -5833,6 +5838,37 @@ _routine:
 
 _exit:
 	return result;
+}
+
+/* Normalize the compatibility alias `END IF` to the standard ENDIF token. */
+static bool_t _try_normalize_end_if_alias(mb_interpreter_t* s, _object_t* obj, char* sym, bool_t* delsym) {
+	_ls_node_t* last_node = 0;
+	_object_t* last = 0;
+	_func_t* func = 0;
+
+	mb_assert(s && obj && sym);
+
+	if(strcmp(sym, "IF") != 0 || !s->ast)
+		return false;
+
+	last_node = _ls_back(s->ast);
+	last = last_node ? (_object_t*)last_node->data : 0;
+	if(!last || !_IS_FUNC(last, _core_end))
+		return false;
+
+	last = (_object_t*)_ls_popback(s->ast);
+	_destroy_object(last, 0);
+
+	obj->type = _DT_FUNC;
+	func = (_func_t*)mb_malloc(sizeof(_func_t));
+	memset(func, 0, sizeof(_func_t));
+	func->name = mb_strdup("ENDIF", sizeof("ENDIF"));
+	func->pointer = _core_endif;
+	obj->data.func = func;
+	*delsym = true;
+	s->parsing_context->last_symbol = obj;
+
+	return true;
 }
 
 /* Parse a character */
