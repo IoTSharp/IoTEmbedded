@@ -800,6 +800,7 @@ typedef struct _parsing_context_t {
 	int current_symbol_contains_accessor;
 	_object_t* last_symbol;
 	int multi_line_comment_count;
+	bool_t string_escape;
 	_parsing_state_e parsing_state;
 	_symbol_state_e symbol_state;
 #ifdef MB_ENABLE_CLASS
@@ -1498,6 +1499,8 @@ static bool_t _is_numeric_char(char c);
 static bool_t _is_identifier_char(char c);
 static bool_t _is_operator_char(char c);
 static bool_t _is_exponential_char(char c);
+static bool_t _is_string_escape_char(char c);
+static char _unescape_string_char(char c);
 static bool_t _is_using_at_char(char c);
 static bool_t _is_exponent_prefix(char* s, int begin, int end);
 
@@ -4991,8 +4994,10 @@ static char* _load_file(mb_interpreter_t* s, const char* f, const char* prefix, 
 
 /* Finish loading a file */
 static void _end_of_file(_parsing_context_t* context) {
-	if(context)
+	if(context) {
 		context->parsing_state = _PS_NORMAL;
+		context->string_escape = false;
+	}
 }
 
 /* Determine whether a character is blank */
@@ -5079,6 +5084,25 @@ static bool_t _is_operator_char(char c) {
 /* Determine whether a character is exponential char */
 static bool_t _is_exponential_char(char c) {
 	return (c == 'e') || (c == 'E');
+}
+
+/* Determine whether a character is a standard Core Profile string escape */
+static bool_t _is_string_escape_char(char c) {
+	return c == 'n' || c == 'r' || c == 't' || c == '"' || c == '\\';
+}
+
+/* Unescape a standard Core Profile string escape */
+static char _unescape_string_char(char c) {
+	switch(c) {
+	case 'n':
+		return _NEWLINE_CHAR;
+	case 'r':
+		return _RETURN_CHAR;
+	case 't':
+		return '\t';
+	default:
+		return c;
+	}
 }
 
 /* Determine whether a character is module using char */
@@ -5946,6 +5970,7 @@ static int _parse_char(mb_interpreter_t* s, const char* str, int n, int pos, uns
 			_mb_check_exit(result = _cut_symbol(s, pos, row, col), _exit);
 			_mb_check_exit(result = _append_char_to_symbol(s, c), _exit);
 			context->parsing_state = _PS_STRING;
+			context->string_escape = false;
 		} else if(_is_comment_char(c)) { /* ' */
 			_mb_check_exit(result = _cut_symbol(s, pos, row, col), _exit);
 			_mb_check_exit(result = _append_char_to_symbol(s, MB_EOS), _exit);
@@ -5986,10 +6011,21 @@ static int _parse_char(mb_interpreter_t* s, const char* str, int n, int pos, uns
 
 		break;
 	case _PS_STRING:
-		if(_is_quotation_char(c)) { /* " */
+		if(context->string_escape) {
+			if(_is_string_escape_char(c)) {
+				_mb_check_exit(result = _append_char_to_symbol(s, _unescape_string_char(c)), _exit);
+			} else {
+				_mb_check_exit(result = _append_char_to_symbol(s, '\\'), _exit);
+				_mb_check_exit(result = _append_char_to_symbol(s, c), _exit);
+			}
+			context->string_escape = false;
+		} else if(c == '\\') {
+			context->string_escape = true;
+		} else if(_is_quotation_char(c)) { /* " */
 			_mb_check_exit(result = _append_char_to_symbol(s, c), _exit);
 			_mb_check_exit(result = _cut_symbol(s, pos, row, col), _exit);
 			context->parsing_state = _PS_NORMAL;
+			context->string_escape = false;
 		} else {
 			_mb_check_exit(result = _append_char_to_symbol(s, c), _exit);
 		}
@@ -18403,7 +18439,8 @@ static int _std_print(mb_interpreter_t* s, void** l) {
 	++s->no_eat_comma_mark;
 	ast = (_ls_node_t*)*l;
 	if(!ast || !ast->next || !ast->next->data) {
-		_handle_error_on_obj(s, SE_RN_SYNTAX_ERROR, s->source_file, DON(ast), MB_FUNC_ERR, _exit, result);
+		_get_printer(s)(s, "\n");
+		goto _exit;
 	}
 	ast = ast->next;
 
