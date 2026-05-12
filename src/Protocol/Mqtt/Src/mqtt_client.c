@@ -19,9 +19,12 @@
 #define MQTT_FIXED_HEADER_CONNACK 0x20U
 #define MQTT_FIXED_HEADER_PUBLISH_QOS0 0x30U
 #define MQTT_FIXED_HEADER_PUBLISH_QOS1 0x32U
+#define MQTT_FIXED_HEADER_PUBLISH_RETAIN 0x01U
 #define MQTT_FIXED_HEADER_PUBACK 0x40U
 #define MQTT_FIXED_HEADER_SUBSCRIBE 0x82U
 #define MQTT_FIXED_HEADER_SUBACK 0x90U
+#define MQTT_FIXED_HEADER_UNSUBSCRIBE 0xA2U
+#define MQTT_FIXED_HEADER_UNSUBACK 0xB0U
 #define MQTT_FIXED_HEADER_PINGREQ 0xC0U
 #define MQTT_FIXED_HEADER_PINGRESP 0xD0U
 #define MQTT_FIXED_HEADER_DISCONNECT 0xE0U
@@ -33,6 +36,7 @@
 #define MQTT_PUBACK_FIXED_LEN 4U
 #define MQTT_CONNECT_TIMEOUT_POLLS 8U
 #define MQTT_SUBACK_TIMEOUT_POLLS 8U
+#define MQTT_UNSUBACK_TIMEOUT_POLLS 8U
 #define MQTT_PINGRESP_TIMEOUT_POLLS 8U
 #define MQTT_PUBACK_TIMEOUT_POLLS 10U
 #define MQTT_POLL_LOCK_TIMEOUT_MS 1U
@@ -47,11 +51,6 @@
 #define TOPIC_SERVER_TO_CLIENT_CMD "/v1/devices/down/command/"
 #define TOPIC_CLIENT_TO_SERVER_CMD_RESP "/v1/devices/up/commandResponse/"
 
-typedef struct {
-  char topic[MQTT_TOPIC_MAX_LEN];
-  char payload[MQTT_PAYLOAD_MAX_LEN];
-} mqtt_inbox_message_t;
-
 static mqtt_config_t *mqtt_config;
 static mqtt_client_state_t mqtt_state = MQTT_CLIENT_STATE_DISCONNECTED;
 static mqtt_message_handler_t mqtt_message_handler;
@@ -62,7 +61,7 @@ static uint32_t mqtt_last_reconnect_tick;
 static uint32_t mqtt_last_ping_tick;
 static uint8_t mqtt_rx_accum[MQTT_RX_BUF_SIZE];
 static uint16_t mqtt_rx_accum_len;
-static mqtt_inbox_message_t mqtt_inbox[MQTT_INBOX_DEPTH];
+static mqtt_message_t mqtt_inbox[MQTT_INBOX_DEPTH];
 static uint8_t mqtt_inbox_head;
 static uint8_t mqtt_inbox_tail;
 static uint8_t mqtt_inbox_count;
@@ -84,6 +83,7 @@ static void mqtt_lock_release(void);
 static bool mqtt_client_connect_locked(void);
 static void mqtt_client_disconnect_locked(void);
 static bool mqtt_client_subscribe_platform_topics_locked(void);
+static bool mqtt_client_unsubscribe_topic_locked(const char *topic);
 static bool mqtt_client_ping_locked(void);
 static void mqtt_client_poll_locked(void);
 static bool mqtt_client_maintain_locked(uint32_t now_ms, uint32_t reconnect_interval_ms);
@@ -92,9 +92,9 @@ static bool mqtt_ensure_credentials(void);
 static bool mqtt_open_tcp(void);
 static bool mqtt_send_connect(void);
 static bool mqtt_subscribe_topic_prefix(const char *topic_prefix);
-static bool mqtt_subscribe_full_topic(const char *topic);
+static bool mqtt_subscribe_full_topic(const char *topic, uint8_t qos);
 static bool mqtt_publish_topic_prefix(const char *topic_prefix, const char *payload);
-static bool mqtt_publish_full_topic(const char *topic, const char *payload);
+static bool mqtt_publish_full_topic(const char *topic, const char *payload, uint8_t qos, bool retain);
 static bool mqtt_send_packet(const uint8_t *packet, uint16_t length);
 static uint16_t mqtt_next_packet_id(void);
 static uint16_t mqtt_encode_remaining_length(uint8_t *buffer, uint32_t length);
@@ -106,8 +106,9 @@ static void mqtt_handle_publish(const uint8_t *packet, uint16_t length, uint8_t 
 static void mqtt_send_puback(uint16_t packet_id);
 static uint16_t mqtt_decode_remaining_length(const uint8_t *packet, uint16_t length, uint16_t *remaining_offset);
 static void mqtt_inbox_reset(void);
-static void mqtt_inbox_push(const char *topic, const char *payload);
+static void mqtt_inbox_push(const char *topic, const char *payload, uint8_t qos, bool retain);
 static bool mqtt_inbox_pop(char *topic, uint16_t topic_len, char *payload, uint16_t payload_len);
+static bool mqtt_inbox_pop_message(mqtt_message_t *message);
 
 static void mqtt_lock_init(void) {
 #if APP_ENABLE_CMSIS_RTOS
@@ -194,13 +195,27 @@ bool mqtt_client_subscribe_platform_topics(void) {
 }
 
 bool mqtt_client_subscribe_topic(const char *topic) {
+  uint8_t qos = mqtt_config == NULL ? 0U : mqtt_config->sub_qos;
+  return mqtt_client_subscribe_topic_ex(topic, qos);
+}
+
+bool mqtt_client_subscribe_topic_ex(const char *topic, uint8_t qos) {
   if (!mqtt_lock_acquire()) {
     return false;
   }
-  bool ok = mqtt_subscribe_full_topic(topic);
+  bool ok = mqtt_subscribe_full_topic(topic, qos);
   if (ok) {
     mqtt_state = MQTT_CLIENT_STATE_SUBSCRIBED;
   }
+  mqtt_lock_release();
+  return ok;
+}
+
+bool mqtt_client_unsubscribe_topic(const char *topic) {
+  if (!mqtt_lock_acquire()) {
+    return false;
+  }
+  bool ok = mqtt_client_unsubscribe_topic_locked(topic);
   mqtt_lock_release();
   return ok;
 }
@@ -242,10 +257,15 @@ bool mqtt_client_publish_command_response(const char *payload) {
 }
 
 bool mqtt_client_publish_topic(const char *topic, const char *payload) {
+  uint8_t qos = mqtt_config == NULL ? 0U : mqtt_config->pub_qos;
+  return mqtt_client_publish_topic_ex(topic, payload, qos, false);
+}
+
+bool mqtt_client_publish_topic_ex(const char *topic, const char *payload, uint8_t qos, bool retain) {
   if (!mqtt_lock_acquire()) {
     return false;
   }
-  bool ok = mqtt_publish_full_topic(topic, payload);
+  bool ok = mqtt_publish_full_topic(topic, payload, qos, retain);
   mqtt_lock_release();
   return ok;
 }
@@ -374,6 +394,15 @@ bool mqtt_client_read_message(char *topic, uint16_t topic_len, char *payload, ui
   return ok;
 }
 
+bool mqtt_client_read_message_ex(mqtt_message_t *message) {
+  if (!mqtt_lock_acquire()) {
+    return false;
+  }
+  bool ok = mqtt_inbox_pop_message(message);
+  mqtt_lock_release();
+  return ok;
+}
+
 uint32_t mqtt_client_get_dropped_message_count(void) {
   uint32_t dropped;
   if (!mqtt_lock_acquire()) {
@@ -431,6 +460,38 @@ static bool mqtt_client_subscribe_platform_topics_locked(void) {
     return false;
   }
   mqtt_state = MQTT_CLIENT_STATE_SUBSCRIBED;
+  return true;
+}
+
+static bool mqtt_client_unsubscribe_topic_locked(const char *topic) {
+  uint8_t payload[MQTT_TX_BUF_SIZE] = {0};
+  uint16_t offset = 0U;
+  if (mqtt_state < MQTT_CLIENT_STATE_SESSION_CONNECTED || topic == NULL || topic[0] == '\0') {
+    return false;
+  }
+  uint16_t packet_id = mqtt_next_packet_id();
+  payload[offset++] = (uint8_t)(packet_id >> 8U);
+  payload[offset++] = (uint8_t)packet_id;
+  if (!mqtt_write_utf8(payload, sizeof(payload), &offset, topic)) {
+    return false;
+  }
+
+  uint8_t packet[MQTT_TX_BUF_SIZE] = {0};
+  packet[0] = MQTT_FIXED_HEADER_UNSUBSCRIBE;
+  uint16_t rl_len = mqtt_encode_remaining_length(&packet[1], offset);
+  memcpy(&packet[1U + rl_len], payload, offset);
+  mqtt_client_clear_packet_flags(MQTT_PACKET_FLAG_UNSUBACK);
+  bool sent = mqtt_send_packet(packet, (uint16_t)(1U + rl_len + offset));
+  if (!sent) {
+    LOG_WARNING("MQTT unsubscribe send failed topic=%s state=%u link=%s", topic, (unsigned int)mqtt_state,
+                network_socket_active_link_name());
+    return false;
+  }
+  if (!mqtt_wait_for_flag(MQTT_PACKET_FLAG_UNSUBACK, MQTT_UNSUBACK_TIMEOUT_POLLS)) {
+    LOG_WARNING("MQTT UNSUBACK timeout topic=%s state=%u link=%s", topic, (unsigned int)mqtt_state,
+                network_socket_active_link_name());
+    return false;
+  }
   return true;
 }
 
@@ -595,14 +656,18 @@ static bool mqtt_send_connect(void) {
 static bool mqtt_subscribe_topic_prefix(const char *topic_prefix) {
   char topic[MQTT_TOPIC_MAX_LEN] = {0};
   mqtt_client_build_topic(topic, sizeof(topic), topic_prefix);
-  return mqtt_subscribe_full_topic(topic);
+  uint8_t qos = mqtt_config == NULL ? 0U : mqtt_config->sub_qos;
+  return mqtt_subscribe_full_topic(topic, qos);
 }
 
-static bool mqtt_subscribe_full_topic(const char *topic) {
+static bool mqtt_subscribe_full_topic(const char *topic, uint8_t qos) {
   uint8_t payload[MQTT_TX_BUF_SIZE] = {0};
   uint16_t offset = 0U;
   if (mqtt_state < MQTT_CLIENT_STATE_SESSION_CONNECTED || topic == NULL || topic[0] == '\0') {
     return false;
+  }
+  if (qos > 1U) {
+    qos = 1U;
   }
   uint16_t packet_id = mqtt_next_packet_id();
   payload[offset++] = (uint8_t)(packet_id >> 8U);
@@ -610,7 +675,7 @@ static bool mqtt_subscribe_full_topic(const char *topic) {
   if (!mqtt_write_utf8(payload, sizeof(payload), &offset, topic)) {
     return false;
   }
-  payload[offset++] = mqtt_config->sub_qos;
+  payload[offset++] = qos;
 
   uint8_t packet[MQTT_TX_BUF_SIZE] = {0};
   packet[0] = MQTT_FIXED_HEADER_SUBSCRIBE;
@@ -634,10 +699,11 @@ static bool mqtt_subscribe_full_topic(const char *topic) {
 static bool mqtt_publish_topic_prefix(const char *topic_prefix, const char *payload) {
   char topic[MQTT_TOPIC_MAX_LEN] = {0};
   mqtt_client_build_topic(topic, sizeof(topic), topic_prefix);
-  return mqtt_publish_full_topic(topic, payload);
+  uint8_t qos = mqtt_config == NULL ? 0U : mqtt_config->pub_qos;
+  return mqtt_publish_full_topic(topic, payload, qos, false);
 }
 
-static bool mqtt_publish_full_topic(const char *topic, const char *payload) {
+static bool mqtt_publish_full_topic(const char *topic, const char *payload, uint8_t qos, bool retain) {
   if (mqtt_state < MQTT_CLIENT_STATE_SESSION_CONNECTED || topic == NULL || topic[0] == '\0' || payload == NULL) {
     return false;
   }
@@ -649,7 +715,6 @@ static bool mqtt_publish_full_topic(const char *topic, const char *payload) {
     return false;
   }
   uint16_t packet_id = 0U;
-  uint8_t qos = mqtt_config == NULL ? 0U : mqtt_config->pub_qos;
   if (qos > 1U) {
     qos = 1U;
   }
@@ -668,6 +733,9 @@ static bool mqtt_publish_full_topic(const char *topic, const char *payload) {
   offset = (uint16_t)(offset + payload_len);
 
   mqtt_tx_packet[0] = qos == 1U ? MQTT_FIXED_HEADER_PUBLISH_QOS1 : MQTT_FIXED_HEADER_PUBLISH_QOS0;
+  if (retain) {
+    mqtt_tx_packet[0] |= MQTT_FIXED_HEADER_PUBLISH_RETAIN;
+  }
   uint16_t rl_len = mqtt_encode_remaining_length(&mqtt_tx_packet[1], offset);
   memcpy(&mqtt_tx_packet[1U + rl_len], mqtt_tx_variable, offset);
   mqtt_client_clear_packet_flags(MQTT_PACKET_FLAG_PUBACK);
@@ -789,6 +857,9 @@ static void mqtt_handle_packet(const uint8_t *packet, uint16_t length) {
   case MQTT_FIXED_HEADER_SUBACK:
     mqtt_packet_flags |= MQTT_PACKET_FLAG_SUBACK;
     break;
+  case MQTT_FIXED_HEADER_UNSUBACK:
+    mqtt_packet_flags |= MQTT_PACKET_FLAG_UNSUBACK;
+    break;
   case MQTT_FIXED_HEADER_PINGRESP:
     mqtt_packet_flags |= MQTT_PACKET_FLAG_PINGRESP;
     break;
@@ -817,6 +888,7 @@ static void mqtt_handle_publish(const uint8_t *packet, uint16_t length, uint8_t 
   memcpy(topic, &packet[pos], topic_len);
   pos = (uint16_t)(pos + topic_len);
   uint8_t qos = (uint8_t)((header >> 1U) & 0x03U);
+  bool retain = (header & MQTT_FIXED_HEADER_PUBLISH_RETAIN) != 0U;
   uint16_t packet_id = 0U;
   if (qos > 0U) {
     if ((pos + 2U) > length) {
@@ -834,7 +906,7 @@ static void mqtt_handle_publish(const uint8_t *packet, uint16_t length, uint8_t 
   }
   char payload[MQTT_PAYLOAD_MAX_LEN] = {0};
   memcpy(payload, &packet[pos], payload_len);
-  mqtt_inbox_push(topic, payload);
+  mqtt_inbox_push(topic, payload, qos, retain);
   if (mqtt_message_handler != NULL) {
     mqtt_message_handler(topic, payload);
   }
@@ -874,7 +946,7 @@ static void mqtt_inbox_reset(void) {
   mqtt_inbox_dropped = 0U;
 }
 
-static void mqtt_inbox_push(const char *topic, const char *payload) {
+static void mqtt_inbox_push(const char *topic, const char *payload, uint8_t qos, bool retain) {
   if (topic == NULL || payload == NULL) {
     return;
   }
@@ -886,6 +958,8 @@ static void mqtt_inbox_push(const char *topic, const char *payload) {
 
   (void)snprintf(mqtt_inbox[mqtt_inbox_head].topic, sizeof(mqtt_inbox[mqtt_inbox_head].topic), "%s", topic);
   (void)snprintf(mqtt_inbox[mqtt_inbox_head].payload, sizeof(mqtt_inbox[mqtt_inbox_head].payload), "%s", payload);
+  mqtt_inbox[mqtt_inbox_head].qos = qos;
+  mqtt_inbox[mqtt_inbox_head].retain = retain;
   mqtt_inbox_head = (uint8_t)((mqtt_inbox_head + 1U) % MQTT_INBOX_DEPTH);
   mqtt_inbox_count++;
 }
@@ -895,8 +969,21 @@ static bool mqtt_inbox_pop(char *topic, uint16_t topic_len, char *payload, uint1
     return false;
   }
 
-  (void)snprintf(topic, topic_len, "%s", mqtt_inbox[mqtt_inbox_tail].topic);
-  (void)snprintf(payload, payload_len, "%s", mqtt_inbox[mqtt_inbox_tail].payload);
+  mqtt_message_t message = {0};
+  if (!mqtt_inbox_pop_message(&message)) {
+    return false;
+  }
+  (void)snprintf(topic, topic_len, "%s", message.topic);
+  (void)snprintf(payload, payload_len, "%s", message.payload);
+  return true;
+}
+
+static bool mqtt_inbox_pop_message(mqtt_message_t *message) {
+  if (message == NULL || mqtt_inbox_count == 0U) {
+    return false;
+  }
+
+  *message = mqtt_inbox[mqtt_inbox_tail];
   memset(&mqtt_inbox[mqtt_inbox_tail], 0, sizeof(mqtt_inbox[mqtt_inbox_tail]));
   mqtt_inbox_tail = (uint8_t)((mqtt_inbox_tail + 1U) % MQTT_INBOX_DEPTH);
   mqtt_inbox_count--;

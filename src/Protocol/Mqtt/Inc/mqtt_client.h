@@ -27,20 +27,31 @@ typedef enum {
   MQTT_PACKET_FLAG_SUBACK = (1U << 3),
   MQTT_PACKET_FLAG_PINGRESP = (1U << 4),
   MQTT_PACKET_FLAG_DISCONNECT = (1U << 5),
+  MQTT_PACKET_FLAG_UNSUBACK = (1U << 6),
 } mqtt_packet_flags_t;
 
 typedef void (*mqtt_message_handler_t)(const char *topic, const char *payload);
+
+typedef struct {
+  char topic[MQTT_TOPIC_MAX_LEN];
+  char payload[MQTT_PAYLOAD_MAX_LEN];
+  uint8_t qos;
+  bool retain;
+} mqtt_message_t;
 
 void mqtt_client_init(mqtt_config_t *config);
 bool mqtt_client_connect(void);
 void mqtt_client_disconnect(void);
 bool mqtt_client_subscribe_platform_topics(void);
 bool mqtt_client_subscribe_topic(const char *topic);
+bool mqtt_client_subscribe_topic_ex(const char *topic, uint8_t qos);
+bool mqtt_client_unsubscribe_topic(const char *topic);
 bool mqtt_client_publish_get_device_info(const char *payload);
 bool mqtt_client_publish_update(const char *payload);
 bool mqtt_client_publish_data(const char *payload);
 bool mqtt_client_publish_command_response(const char *payload);
 bool mqtt_client_publish_topic(const char *topic, const char *payload);
+bool mqtt_client_publish_topic_ex(const char *topic, const char *payload, uint8_t qos, bool retain);
 bool mqtt_client_ping(void);
 void mqtt_client_poll(void);
 // 主循环维护入口：负责接收下行、断线重连、自动订阅和 keepalive PING。
@@ -56,6 +67,7 @@ bool mqtt_client_is_ready(void);
 void mqtt_client_build_topic(char *buffer, uint16_t buffer_len, const char *prefix);
 uint8_t mqtt_client_pending_messages(void);
 bool mqtt_client_read_message(char *topic, uint16_t topic_len, char *payload, uint16_t payload_len);
+bool mqtt_client_read_message_ex(mqtt_message_t *message);
 uint32_t mqtt_client_get_dropped_message_count(void);
 
 #ifdef __cplusplus

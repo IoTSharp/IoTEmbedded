@@ -6,21 +6,18 @@
 
 ## MQTT 函数
 
-- `MQTT_CONNECT()`：连接服务器。
-- `MQTT_DISCONNECT()`：断开连接。
-- `MQTT_CONNECTED()`：返回是否已建立 MQTT 会话。
-- `MQTT_MAINTAIN(reconnect_ms)`：轮询 MQTT 并按需重连/保活，返回 1 表示已连接；业务 topic 仍由脚本订阅。
-- `MQTT_READY()`：返回 MQTT 是否已经完成连接和订阅。
-- `MQTT_PING()`：主动发送 ping。
-- `MQTT_BUILD_TOPIC(prefix$)`：返回 `prefix$ + mqtt.user_name`，适合平台按采集器 ID 结尾的 topic。
-- `MQTT_SUBSCRIBE(topic$)`：订阅完整 topic。
-- `MQTT_PUBLISH(topic$, payload$)`：向完整 topic 发布 payload。
-- `MQTT_POLL()`：接收一次 MQTT 数据并返回待处理消息数量。
-- `MQTT_RECV()`：弹出一条下行消息，返回 1 表示成功。
-- `MQTT_RECV_TOPIC()` / `MQTT_RECV_PAYLOAD()`：读取最近一次 `MQTT_RECV()` 弹出的 topic 和 payload。
-- `MQTT_MESSAGE_COUNT()`：返回当前收件箱待处理消息数量。
-- `MQTT_OVERFLOW()`：返回因收件箱满而丢弃的消息数量。
-- `BASIC_DELAY(ms)` / `BASIC_TICKS()`：脚本延时和系统 tick 辅助函数。
+- `MQTT_CONNECT(endpoint$[, port, client_id$, username$, password$, keep_alive_seconds])`：连接服务器，成功返回 MQTT 句柄，失败返回 `0`。
+- `MQTT_DISCONNECT(handle)`：断开连接。
+- `MQTT_CONNECTED(handle)`：返回是否已建立 MQTT 会话。
+- `MQTT_PING(handle)`：主动发送 ping。
+- `MQTT_SUBSCRIBE(handle, topic$[, qos])`：订阅完整 topic。
+- `MQTT_UNSUBSCRIBE(handle, topic$)`：取消订阅。
+- `MQTT_PUBLISH(handle, topic$, payload$[, qos, retain])`：向完整 topic 发布 payload；当前 STM32 支持 QoS 0/1 和 retain 标志。
+- `MQTT_RECEIVE(handle[, timeout_ms])`：接收一条消息，返回 `DICT` 或 `NIL`；消息字段包含 `topic`、`payload`、`qos`、`retain`。
+- `MQTT_LAST_ERROR([handle])`：读取最近一次 MQTT 错误。
+- `DELAY(ms)` / `SLEEP(ms)` / `TICKS()`：脚本延时和系统 tick 辅助函数。
+
+STM32 当前底层只有一个物理 MQTT 会话，但脚本层仍统一使用句柄模型；再次 `MQTT_CONNECT(...)` 会替换前一个物理会话并返回新的句柄。`endpoint$` 在 STM32 上使用 host/IP，不带 `mqtt://` scheme。
 
 ## 配置 / 网络 函数
 
@@ -93,6 +90,10 @@ ENDIF
 
 LET msg = JSON_OBJECT()
 JSON_SET_STRING(msg, "type", "heartbeat")
-JSON_SET_NUMBER(msg, "time", BASIC_TICKS())
-MQTT_PUBLISH(MQTT_BUILD_TOPIC("collector/"), JSON_STRINGIFY(msg))
+JSON_SET_NUMBER(msg, "time", TICKS())
+LET mqtt = MQTT_CONNECT("192.168.137.110", 1883, "basic-d0001", "d0001", "auto", 60)
+IF mqtt <> 0 THEN
+  MQTT_PUBLISH(mqtt, "/v1/devices/up/basic/d0001", JSON_STRINGIFY(msg), 0, 0)
+  MQTT_DISCONNECT(mqtt)
+ENDIF
 ```
