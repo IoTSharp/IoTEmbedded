@@ -19,6 +19,8 @@
 
 STM32 当前底层只有一个物理 MQTT 会话，但脚本层仍统一使用句柄模型；再次 `MQTT_CONNECT(...)` 会替换前一个物理会话并返回新的句柄。`endpoint$` 在 STM32 上使用 host/IP，不带 `mqtt://` scheme。
 
+旧的板级单例入口 `MQTT_CONNECT()`、`MQTT_PUBLISH(topic$, payload$)`、`MQTT_RECV()` 不再兼容、不保留，也不提供别名；脚本必须显式保存并传递 MQTT 句柄。
+
 ## 配置 / 网络 函数
 
 - `CONFIG_GET(key$[, default$])`：读取当前配置值，返回字符串。

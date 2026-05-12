@@ -68,6 +68,7 @@ ErrorStatus basic_mqtt_register(struct mb_interpreter_t *interpreter) {
   basic_mqtt_clear_error();
 
   int result = MB_FUNC_OK;
+  /* Register only the standard handle-model API. Legacy singleton MQTT_RECV or parameter-compatible calls are absent. */
   result |= mb_register_func(interpreter, "MQTT_CONNECT", basic_mqtt_connect);
   result |= mb_register_func(interpreter, "MQTT_DISCONNECT", basic_mqtt_disconnect);
   result |= mb_register_func(interpreter, "MQTT_CONNECTED", basic_mqtt_connected);
