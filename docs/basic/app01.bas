@@ -1,7 +1,7 @@
 REM app01.bas - primary EEPROM BASIC smoke test
 PRINT "APP01: boot"
 
-IMPORT "app02.bas"
+IMPORT "common.bas"
 
 LET total = 0
 FOR i = 1 TO 5
@@ -33,11 +33,11 @@ DEF checksum(a, b, c)
 ENDDEF
 PRINT "APP01: checksum="; checksum(meter(0), meter(1), meter(2))
 
-LET backup_value = app02_value()
-PRINT "APP01: imported value="; backup_value
-PRINT "APP01: imported name="; app02_name$()
+LET imported_value = common_value()
+PRINT "APP01: imported value="; imported_value
+PRINT "APP01: imported name="; common_name$()
 
-IF backup_value = 202 THEN
+IF imported_value = 202 THEN
   PRINT "APP01: import ok"
 ELSE
   PRINT "APP01: import failed"

@@ -34,7 +34,7 @@ ErrorStatus eeprom_write_basic_script(eeprom_basic_script_slot_t slot, const cha
 ErrorStatus eeprom_read_basic_script(eeprom_basic_script_slot_t slot, char *script, size_t script_size,
                                      size_t *actual_size);
 ErrorStatus eeprom_get_basic_script_info(eeprom_basic_script_slot_t slot, eeprom_basic_script_info_t *info);
-bool eeprom_basic_script_slot_from_name(const char *name, eeprom_basic_script_slot_t *slot);
+bool eeprom_basic_script_slot_from_package_name(const char *name, eeprom_basic_script_slot_t *slot);
 const char *eeprom_basic_script_slot_name(eeprom_basic_script_slot_t slot);
 
 #ifdef __cplusplus

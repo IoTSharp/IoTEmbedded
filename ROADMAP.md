@@ -60,7 +60,7 @@
 | --- | --- | --- | --- |
 | B1 | ⬜ | [依赖: A2] | 目录定型：App / Bsp / Common / Config / Storage / ThirdParty / Drives / Platform / projects |
 | B2 | ⬜ | [依赖: B1] | 板级资源模型：IOC、时钟、引脚、外设映射 |
-| B3 | ⬜ | [并行 ‖ B2] | UART / I2C / SPI 的统一适配接口 |
+| B3 | ⬜ | [并行 ‖ B2] | SERIAL / I2C / SPI 的统一适配接口 |
 | B4 | ⬜ | [依赖: B2] | GPIO / Timer / Flash 等基础能力封装 |
 | B5 | ⬜ | [并行 ‖ B2] | 其他系统复用的驱动接口约定 |
 

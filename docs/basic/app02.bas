@@ -1,17 +1,17 @@
-REM app02.bas - backup slot and import smoke test
-PRINT "APP02: loaded"
+REM common.bas - import smoke test, usually stored in the backup EEPROM slot
+PRINT "COMMON: loaded"
 
-DEF app02_value()
+DEF common_value()
   RETURN 202
 ENDDEF
 
-DEF app02_name$()
-  RETURN "app02.bas"
+DEF common_name$()
+  RETURN "common.bas"
 ENDDEF
 
-DEF app02_health()
+DEF common_health()
   LET ok = 1
   RETURN ok
 ENDDEF
 
-PRINT "APP02: ready"
+PRINT "COMMON: ready"

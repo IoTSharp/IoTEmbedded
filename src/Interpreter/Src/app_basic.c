@@ -6,7 +6,7 @@
 #include "Interpreter/Inc/basic_json.h"
 #include "Interpreter/Inc/basic_modbus.h"
 #include "Interpreter/Inc/basic_mqtt.h"
-#include "Interpreter/Inc/basic_uart.h"
+#include "Interpreter/Inc/basic_serial.h"
 
 #include <stdbool.h>
 #include <stdarg.h>
@@ -107,7 +107,7 @@ static ErrorStatus app_basic_load_from_slot(app_basic_slot_t slot) {
 
   (void)mb_set_printer(app_basic_interpreter, app_basic_printer);
   (void)mb_set_import_handler(app_basic_interpreter, app_basic_import_handler);
-  if (basic_uart_register(app_basic_interpreter) != SUCCESS ||
+  if (basic_serial_register(app_basic_interpreter) != SUCCESS ||
       basic_modbus_register(app_basic_interpreter) != SUCCESS ||
       basic_json_register(app_basic_interpreter) != SUCCESS ||
       basic_config_register(app_basic_interpreter) != SUCCESS ||
@@ -137,7 +137,7 @@ static int app_basic_import_handler(struct mb_interpreter_t *s, const char *name
   if (app_basic_import_in_progress) {
     return MB_FUNC_ERR;
   }
-  if (!eeprom_basic_script_slot_from_name(name, &slot)) {
+  if (!eeprom_basic_script_slot_from_package_name(name, &slot)) {
     return MB_FUNC_ERR;
   }
 

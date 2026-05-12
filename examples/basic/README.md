@@ -2,6 +2,7 @@
 
 本目录放可以写入 EEPROM 脚本槽的 `.bas` 示例。
 当前固件默认从 EEPROM 里的 `app01.bas` / `app02.bas` 读取脚本；这里的示例文件用于编写和演示脚本内容。
+`IMPORT` 参数是包内脚本名，不是物理槽位名；STM32 会按 EEPROM 槽里保存的脚本名做映射，例如把 `common.bas` 存入备份槽后，主脚本可使用 `IMPORT "common.bas"`。
 
 ## MQTT 函数
 
@@ -29,14 +30,14 @@
 - `CONFIG_SAVE()`：把当前配置写入 EEPROM。
 - `CONFIG_RESET()`：恢复默认配置草稿。
 - `NETWORK_AUTO([save])`：切回自动主备链路。
-- `NETWORK_CH395([save])`：固定 MQTT 网络链路为 CH395Q/UART4/CN2，并用当前本机 IP 配置重刷 CH395。
-- `NETWORK_4G([save])`：固定 MQTT 网络链路为 Air724UG/UART4。
+- `NETWORK_CH395([save])`：固定 MQTT 网络链路为 CH395Q/4 号串口/CN2，并用当前本机 IP 配置重刷 CH395。
+- `NETWORK_4G([save])`：固定 MQTT 网络链路为 Air724UG/4 号串口。
 - `NETWORK_USE(mode$[, save])`：直接切换 `auto|wired|4g`，可选 `save=1` 顺手落盘。
 - `NETWORK_MODE()` / `NETWORK_LINK()` / `NETWORK_READY()`：读取当前配置模式、当前活动链路和链路就绪状态。
 - `MQTT_USE_AUTO([save])` / `MQTT_USE_CH395([save])` / `MQTT_USE_4G([save])`：与 `NETWORK_*` 等价，但脚本语义更偏 MQTT 链路选择。
-- `MQTT_SETUP_CH395(host$, port, user$, password$, local_ip$, gateway$, mask$[, save])`：设置 MQTT 与 CH395Q 本机网络参数，立即切到 CH395Q/UART4/CN2；`password$` 传 `"auto"` 会按平台规则自动生成密码。
+- `MQTT_SETUP_CH395(host$, port, user$, password$, local_ip$, gateway$, mask$[, save])`：设置 MQTT 与 CH395Q 本机网络参数，立即切到 CH395Q/4 号串口/CN2；`password$` 传 `"auto"` 会按平台规则自动生成密码。
 
-其中 `wired` 对应 CH395Q/UART4/CN2，`4g` 对应 Air724UG/UART4。
+其中 `wired` 对应 CH395Q/4 号串口/CN2，`4g` 对应 Air724UG/4 号串口。
 
 ## JSON 函数
 
@@ -56,13 +57,13 @@
 `JSON_GET` / `JSON_AT` 会返回一个独立句柄副本，适合继续读值或再组合；如果要改原对象，优先用 `JSON_SET_*` / `JSON_SET_AT_*` / `JSON_APPEND_*`。
 对象路径使用 Parson 的点号写法，例如 `"device.id"`。数组用 `JSON_AT_*` / `JSON_SET_AT_*` / `JSON_APPEND_*` 通过数组字段名 + 下标访问。
 
-## UART / RS485 函数
+## SERIAL / RS485 函数
 
-- `UART_OPEN(port, type$)`：按 CubeMX 生成的 UART 句柄打开端口，`port` 取 `1`/`2`/`4`/`5`，`type$` 取 `"UART"`、`"RS485"` 或 `"RS232"`，返回可传递的句柄。
-- `UART_BAUD(port_handle)` / `UART_SET_BAUD(port_handle, baud)`：读取或按 8N1 重新配置 UART 波特率。
-- `UART_WRITE(port_handle, text$, timeout_ms)` / `UART_READ(port_handle, len, timeout_ms)`：文本收发；`UART_READ` 单次最多返回 256 字节。
-- `UART_WRITE_BYTES(port_handle, buf, len, timeout_ms)` / `UART_READ_BYTES(port_handle, buf, len, timeout_ms)`：一维数值数组收发原始字节，数组元素范围为 0-255，返回实际字节数。
-- `UART_FLUSH(port_handle)`：清掉对应 UART 的接收残留。
+- `SERIAL_OPEN(port, type$)`：按 CubeMX 生成的串口句柄打开端口，`port` 取 `1`/`2`/`4`/`5`，`type$` 取 `"SERIAL"`、`"RS485"` 或 `"RS232"`，返回可传递的句柄。
+- `SERIAL_BAUD(port_handle)` / `SERIAL_SET_BAUD(port_handle, baud)`：读取或按 8N1 重新配置串口波特率。
+- `SERIAL_WRITE(port_handle, text$, timeout_ms)` / `SERIAL_READ(port_handle, len, timeout_ms)`：文本收发；`SERIAL_READ` 单次最多返回 256 字节。
+- `SERIAL_WRITE_BYTES(port_handle, buf, len, timeout_ms)` / `SERIAL_READ_BYTES(port_handle, buf, len, timeout_ms)`：一维数值数组收发原始字节，数组元素范围为 0-255，返回实际字节数。
+- `SERIAL_FLUSH(port_handle)`：清掉对应串口的接收残留。
 
 ## MODBUS 函数
 
@@ -76,19 +77,19 @@
 - `MODBUS_WRITE_REGS(port_handle, slave, reg, count, buf[, timeout_ms])`
 - `MODBUS_ERROR()` / `MODBUS_LAST_ERROR()`：读取最近一次 Modbus 错误码。
 
-`AIR724` 只是挂在 `UART4` 上的外设名称，不是 BASIC 端口类型；如果脚本要通过它做串口收发，也还是先 `UART_OPEN(4, "UART")` 再使用句柄。
-当前板级可用组合是 `1/RS485`、`2/UART`、`4/UART`、`5/RS232`。
+`AIR724` 只是挂在 4 号串口上的外设名称，不是 BASIC 端口类型；如果脚本要通过它做串口收发，也还是先 `SERIAL_OPEN(4, "SERIAL")` 再使用句柄。
+当前板级可用组合是 `1/RS485`、`2/SERIAL`、`4/SERIAL`、`5/RS232`。
 
 示例：
 
 ```basic
 MQTT_SETUP_CH395("192.168.137.110", 1883, "d0001", "auto", "192.168.137.201", "192.168.137.11", "255.255.255.0")
 
-LET rs485 = UART_OPEN(1, "RS485")
-DIM regs(3)
+LET rs485 = SERIAL_OPEN(1, "RS485")
+DIM regs(4)
 IF MODBUS_READ_HOLD_REGS(rs485, 1, 0, 2, regs) THEN
   PRINT regs(0); ","; regs(1); ","; regs(2); ","; regs(3)
-END IF
+ENDIF
 
 LET msg = JSON_OBJECT()
 JSON_SET_STRING(msg, "type", "heartbeat")

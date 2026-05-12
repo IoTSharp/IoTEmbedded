@@ -125,12 +125,25 @@ ErrorStatus eeprom_get_basic_script_info(eeprom_basic_script_slot_t slot, eeprom
   return SUCCESS;
 }
 
-bool eeprom_basic_script_slot_from_name(const char *name, eeprom_basic_script_slot_t *slot) {
+bool eeprom_basic_script_slot_from_package_name(const char *name, eeprom_basic_script_slot_t *slot) {
   if (name == NULL || slot == NULL) {
     return false;
   }
   name = eeprom_basic_script_leaf_name(name);
 
+  for (uint8_t i = 0U; i < EEPROM_BASIC_SCRIPT_SLOT_COUNT; i++) {
+    eeprom_basic_script_slot_t current_slot = (eeprom_basic_script_slot_t)i;
+    eeprom_basic_script_info_t info;
+    if (eeprom_get_basic_script_info(current_slot, &info) != SUCCESS || !info.valid) {
+      continue;
+    }
+    if (eeprom_basic_script_name_equals(name, info.name)) {
+      *slot = current_slot;
+      return true;
+    }
+  }
+
+  /* Compatibility only: legacy scripts may still import physical slot names. */
   if (eeprom_basic_script_name_equals(name, "app01.bas") || eeprom_basic_script_name_equals(name, "app01")) {
     *slot = EEPROM_BASIC_SCRIPT_SLOT_APP01;
     return true;

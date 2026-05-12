@@ -3,7 +3,7 @@
 #include "Board/Inc/bsp_board.h"
 #include "Bus/Rs485/Inc/bsp_rs485.h"
 #include "Interpreter/Inc/basic.h"
-#include "Interpreter/Inc/basic_uart.h"
+#include "Interpreter/Inc/basic_serial.h"
 #include "Protocol/Modbus/Inc/modbus_core_crc.h"
 #include "Protocol/Modbus/Inc/modbus_core_define.h"
 #include "Protocol/Modbus/Inc/modbus_core_master.h"
@@ -37,7 +37,7 @@ static int basic_modbus_read_bits_after_func(struct mb_interpreter_t *s, void **
 static int basic_modbus_read_registers_after_func(struct mb_interpreter_t *s, void **l, uint8_t func_code);
 static int basic_modbus_write_single_after_func(struct mb_interpreter_t *s, void **l, uint8_t func_code);
 static int basic_modbus_write_multiple_after_func(struct mb_interpreter_t *s, void **l, uint8_t func_code);
-static int basic_modbus_pop_port(struct mb_interpreter_t *s, void **l, basic_uart_port_t *port);
+static int basic_modbus_pop_port(struct mb_interpreter_t *s, void **l, basic_serial_port_t *port);
 static bool basic_modbus_pop_u8(struct mb_interpreter_t *s, void **l, uint8_t min_value, uint8_t max_value,
                                 uint8_t *value);
 static bool basic_modbus_pop_u16(struct mb_interpreter_t *s, void **l, uint16_t min_value, uint16_t max_value,
@@ -62,12 +62,12 @@ static void basic_modbus_release_value(struct mb_interpreter_t *s, mb_value_t va
 static uint8_t basic_modbus_build_simple_request(uint8_t *request, uint8_t slave_addr, uint8_t func_code,
                                                  uint16_t reg_addr, uint16_t value);
 static void basic_modbus_append_crc(uint8_t *buffer, uint8_t *length);
-static bool basic_modbus_exchange(basic_uart_port_t port, const uint8_t *request, uint8_t request_len,
+static bool basic_modbus_exchange(basic_serial_port_t port, const uint8_t *request, uint8_t request_len,
                                   uint16_t expected_len, uint8_t *response, uint16_t *response_len,
                                   uint32_t wait_ms);
-static uint32_t basic_modbus_response_timeout_ms(basic_uart_port_t port, uint32_t wait_ms,
+static uint32_t basic_modbus_response_timeout_ms(basic_serial_port_t port, uint32_t wait_ms,
                                                  uint16_t expected_len);
-static void basic_modbus_prepare_port(basic_uart_port_t port, bool *restart_rs485_rx);
+static void basic_modbus_prepare_port(basic_serial_port_t port, bool *restart_rs485_rx);
 static void basic_modbus_finish_port(bool restart_rs485_rx);
 static bool basic_modbus_validate_response(const uint8_t *response, uint16_t response_len, uint8_t slave_addr,
                                            uint8_t func_code);
@@ -132,15 +132,15 @@ static int basic_modbus_write_registers(struct mb_interpreter_t *s, void **l) {
 }
 
 static int basic_modbus_error(struct mb_interpreter_t *s, void **l) {
-  basic_uart_feed_heartbeat();
+  basic_serial_feed_heartbeat();
   mb_check(mb_attempt_open_bracket(s, l));
   mb_check(mb_attempt_close_bracket(s, l));
   return mb_push_int(s, l, (int_t)basic_modbus_last_error);
 }
 
 static int basic_modbus_read_bits_after_func(struct mb_interpreter_t *s, void **l, uint8_t func_code) {
-  basic_uart_feed_heartbeat();
-  basic_uart_port_t port = {0};
+  basic_serial_feed_heartbeat();
+  basic_serial_port_t port = {0};
   uint8_t slave_addr = 0U;
   uint16_t reg_addr = 0U;
   uint16_t bit_count = 0U;
@@ -175,7 +175,7 @@ static int basic_modbus_read_bits_after_func(struct mb_interpreter_t *s, void **
   }
 
   uint16_t capacity = 0U;
-  if (!basic_uart_port_is_modbus_capable(port) || !basic_modbus_array_capacity(s, l, array_value, &capacity) ||
+  if (!basic_serial_port_is_modbus_capable(port) || !basic_modbus_array_capacity(s, l, array_value, &capacity) ||
       capacity < bit_count) {
     basic_modbus_set_error(InvalidDataErrorCode);
     result = mb_push_int(s, l, 0);
@@ -185,7 +185,7 @@ static int basic_modbus_read_bits_after_func(struct mb_interpreter_t *s, void **
   uint16_t data_len = (uint16_t)((bit_count + 7U) / 8U);
   uint8_t request_len = basic_modbus_build_simple_request(request, slave_addr, func_code, reg_addr, bit_count);
   if (!basic_modbus_exchange(port, request, request_len, (uint16_t)(data_len + 5U), response, &response_len,
-                             basic_uart_timeout_from_int(wait_arg)) ||
+                             basic_serial_timeout_from_int(wait_arg)) ||
       !basic_modbus_validate_response(response, response_len, slave_addr, func_code)) {
     result = mb_push_int(s, l, 0);
     goto exit;
@@ -208,8 +208,8 @@ exit:
 }
 
 static int basic_modbus_read_registers_after_func(struct mb_interpreter_t *s, void **l, uint8_t func_code) {
-  basic_uart_feed_heartbeat();
-  basic_uart_port_t port = {0};
+  basic_serial_feed_heartbeat();
+  basic_serial_port_t port = {0};
   uint8_t slave_addr = 0U;
   uint16_t reg_addr = 0U;
   uint16_t reg_count = 0U;
@@ -245,7 +245,7 @@ static int basic_modbus_read_registers_after_func(struct mb_interpreter_t *s, vo
 
   uint16_t data_len = (uint16_t)(reg_count * 2U);
   uint16_t capacity = 0U;
-  if (!basic_uart_port_is_modbus_capable(port) || !basic_modbus_array_capacity(s, l, array_value, &capacity) ||
+  if (!basic_serial_port_is_modbus_capable(port) || !basic_modbus_array_capacity(s, l, array_value, &capacity) ||
       capacity < data_len) {
     basic_modbus_set_error(InvalidDataErrorCode);
     result = mb_push_int(s, l, 0);
@@ -254,7 +254,7 @@ static int basic_modbus_read_registers_after_func(struct mb_interpreter_t *s, vo
 
   uint8_t request_len = basic_modbus_build_simple_request(request, slave_addr, func_code, reg_addr, reg_count);
   if (!basic_modbus_exchange(port, request, request_len, (uint16_t)(data_len + 5U), response, &response_len,
-                             basic_uart_timeout_from_int(wait_arg)) ||
+                             basic_serial_timeout_from_int(wait_arg)) ||
       !basic_modbus_validate_response(response, response_len, slave_addr, func_code)) {
     result = mb_push_int(s, l, 0);
     goto exit;
@@ -277,8 +277,8 @@ exit:
 }
 
 static int basic_modbus_write_single_after_func(struct mb_interpreter_t *s, void **l, uint8_t func_code) {
-  basic_uart_feed_heartbeat();
-  basic_uart_port_t port = {0};
+  basic_serial_feed_heartbeat();
+  basic_serial_port_t port = {0};
   uint8_t slave_addr = 0U;
   uint16_t reg_addr = 0U;
   uint16_t value = 0U;
@@ -300,7 +300,7 @@ static int basic_modbus_write_single_after_func(struct mb_interpreter_t *s, void
   }
   mb_check(mb_attempt_close_bracket(s, l));
 
-  if (!basic_uart_port_is_modbus_capable(port)) {
+  if (!basic_serial_port_is_modbus_capable(port)) {
     basic_modbus_set_error(InvalidDataErrorCode);
     return mb_push_int(s, l, 0);
   }
@@ -316,15 +316,15 @@ static int basic_modbus_write_single_after_func(struct mb_interpreter_t *s, void
 
   uint8_t request_len = basic_modbus_build_simple_request(request, slave_addr, func_code, reg_addr, value);
   bool ok = basic_modbus_exchange(port, request, request_len, 8U, response, &response_len,
-                                  basic_uart_timeout_from_int(wait_arg)) &&
+                                  basic_serial_timeout_from_int(wait_arg)) &&
             basic_modbus_validate_response(response, response_len, slave_addr, func_code) &&
             basic_modbus_finish_write_response(request, response, response_len, slave_addr, func_code);
   return mb_push_int(s, l, ok ? 1 : 0);
 }
 
 static int basic_modbus_write_multiple_after_func(struct mb_interpreter_t *s, void **l, uint8_t func_code) {
-  basic_uart_feed_heartbeat();
-  basic_uart_port_t port = {0};
+  basic_serial_feed_heartbeat();
+  basic_serial_port_t port = {0};
   uint8_t slave_addr = 0U;
   uint16_t reg_addr = 0U;
   uint16_t item_count = 0U;
@@ -370,7 +370,7 @@ static int basic_modbus_write_multiple_after_func(struct mb_interpreter_t *s, vo
 
   if (func_code == WriteMulCoilsReg) {
     uint8_t packed[BASIC_MODBUS_WRITE_DATA_MAX] = {0};
-    if (!basic_uart_port_is_modbus_capable(port) ||
+    if (!basic_serial_port_is_modbus_capable(port) ||
         !basic_modbus_array_capacity(s, l, array_value, &capacity) || capacity < item_count) {
       basic_modbus_set_error(InvalidDataErrorCode);
       result = mb_push_int(s, l, 0);
@@ -399,7 +399,7 @@ static int basic_modbus_write_multiple_after_func(struct mb_interpreter_t *s, vo
     request_len = (uint8_t)(request_len + data_len);
     basic_modbus_append_crc(request, &request_len);
   } else {
-    if (!basic_uart_port_is_modbus_capable(port) || !basic_modbus_array_capacity(s, l, array_value, &capacity) ||
+    if (!basic_serial_port_is_modbus_capable(port) || !basic_modbus_array_capacity(s, l, array_value, &capacity) ||
         capacity < (uint16_t)(item_count * 2U)) {
       basic_modbus_set_error(InvalidDataErrorCode);
       result = mb_push_int(s, l, 0);
@@ -429,7 +429,7 @@ static int basic_modbus_write_multiple_after_func(struct mb_interpreter_t *s, vo
   }
 
   bool ok = basic_modbus_exchange(port, request, request_len, 8U, response, &response_len,
-                                  basic_uart_timeout_from_int(wait_arg)) &&
+                                  basic_serial_timeout_from_int(wait_arg)) &&
             basic_modbus_validate_response(response, response_len, slave_addr, func_code) &&
             basic_modbus_finish_write_response(request, response, response_len, slave_addr, func_code);
   result = mb_push_int(s, l, ok ? 1 : 0);
@@ -439,14 +439,14 @@ exit:
   return result;
 }
 
-static int basic_modbus_pop_port(struct mb_interpreter_t *s, void **l, basic_uart_port_t *port) {
+static int basic_modbus_pop_port(struct mb_interpreter_t *s, void **l, basic_serial_port_t *port) {
   mb_value_t port_value;
   mb_make_nil(port_value);
   int result = mb_pop_value(s, l, &port_value);
   if (result != MB_FUNC_OK) {
     return result;
   }
-  result = basic_uart_port_from_value(port_value, port) ? MB_FUNC_OK : MB_FUNC_ERR;
+  result = basic_serial_port_from_value(port_value, port) ? MB_FUNC_OK : MB_FUNC_ERR;
   basic_modbus_release_value(s, port_value);
   return result;
 }
@@ -679,7 +679,7 @@ static void basic_modbus_append_crc(uint8_t *buffer, uint8_t *length) {
   buffer[(*length)++] = (uint8_t)crc;
 }
 
-static bool basic_modbus_exchange(basic_uart_port_t port, const uint8_t *request, uint8_t request_len,
+static bool basic_modbus_exchange(basic_serial_port_t port, const uint8_t *request, uint8_t request_len,
                                   uint16_t expected_len, uint8_t *response, uint16_t *response_len,
                                   uint32_t wait_ms) {
   bool ok = false;
@@ -699,14 +699,14 @@ static bool basic_modbus_exchange(basic_uart_port_t port, const uint8_t *request
 
   basic_modbus_prepare_port(port, &restart_rs485_rx);
   bsp_delay_ms(BASIC_MODBUS_FRAME_GAP_MS);
-  size_t written = basic_uart_write_data(port, request, request_len, wait_ms);
+  size_t written = basic_serial_write_data(port, request, request_len, wait_ms);
   if (written != request_len) {
     basic_modbus_set_error(ModbusFrameErrorCode);
     goto exit;
   }
 
   uint32_t response_timeout = basic_modbus_response_timeout_ms(port, wait_ms, expected_len);
-  *response_len = basic_uart_read_data(port, response, expected_len, response_timeout);
+  *response_len = basic_serial_read_data(port, response, expected_len, response_timeout);
   if (*response_len == 0U) {
     basic_modbus_set_error(ModbusNoResponseErrorCode);
     goto exit;
@@ -720,9 +720,9 @@ exit:
   return ok;
 }
 
-static uint32_t basic_modbus_response_timeout_ms(basic_uart_port_t port, uint32_t wait_ms,
+static uint32_t basic_modbus_response_timeout_ms(basic_serial_port_t port, uint32_t wait_ms,
                                                  uint16_t expected_len) {
-  uint32_t baud_rate = basic_uart_get_baud_rate(port);
+  uint32_t baud_rate = basic_serial_get_baud_rate(port);
   if (baud_rate == 0U) {
     baud_rate = 9600U;
   }
@@ -731,16 +731,16 @@ static uint32_t basic_modbus_response_timeout_ms(basic_uart_port_t port, uint32_
   return wait_ms + frame_ms + BASIC_MODBUS_FRAME_GAP_MS;
 }
 
-static void basic_modbus_prepare_port(basic_uart_port_t port, bool *restart_rs485_rx) {
+static void basic_modbus_prepare_port(basic_serial_port_t port, bool *restart_rs485_rx) {
   if (restart_rs485_rx == NULL) {
     return;
   }
   *restart_rs485_rx = false;
-  if (port.interface == BASIC_UART_INTERFACE_RS485 && port.handle == BSP_RS485_UART_HANDLE) {
+  if (port.interface == BASIC_SERIAL_INTERFACE_RS485 && port.handle == BSP_RS485_UART_HANDLE) {
     (void)HAL_UART_AbortReceive_IT(port.handle);
     *restart_rs485_rx = true;
   }
-  basic_uart_flush_port(port);
+  basic_serial_flush_port(port);
 }
 
 static void basic_modbus_finish_port(bool restart_rs485_rx) {
