@@ -1,4 +1,4 @@
-# 仓库约束 (IoTEmBASIC / IoTSharp.Edge.Stm32)
+# 仓库约束 (IoTEmBASIC / IoTEdge.Stm32)
 
 本仓库面向 STM32 + STM32 HAL + FreeRTOS + CMSIS_RTOS_V2 的纯 C 嵌入式工程。所有
 新增代码、目录调整、构建脚本变更都必须遵守以下硬性约束。
