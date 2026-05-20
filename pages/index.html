@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IoTEdge.Stm32 | MCU BASIC Runtime</title>
+  <meta name="description" content="IoTEdge.Stm32 是 IoTSharp 生态面向 STM32 和资源受限设备的 BASIC 解释器内核与嵌入式边缘运行时。">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="https://iotsharp.net/" aria-label="IoTSharp home">
+      <span class="brand-mark">IoT</span>
+      <span>IoTSharp</span>
+    </a>
+    <nav aria-label="Project navigation">
+      <a href="#capabilities">能力</a>
+      <a href="#layers">分层</a>
+      <a href="#targets">目标</a>
+      <a href="https://github.com/IoTSharp/IoTEmBASIC">GitHub</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">IoTSharp Embedded Runtime</p>
+        <h1>IoTEdge.Stm32</h1>
+        <p class="hero-text">
+          MCU 上的 BASIC 解释器与边缘运行时。它把脚本解释、设备接口、网络协议、板级服务和 STM32 工程模板拆成可移植的嵌入式栈，适合低资源现场设备。
+        </p>
+        <div class="actions">
+          <a class="primary" href="#layers">查看架构</a>
+          <a class="secondary" href="https://github.com/IoTSharp/IoTEmBASIC">查看源码</a>
+        </div>
+      </div>
+      <div class="hero-diagram" aria-label="IoTEdge.Stm32 runtime layers">
+        <div>
+          <span>Core</span>
+          <strong>BASIC 解释器</strong>
+          <small>lexer / parser / evaluator / built-ins</small>
+        </div>
+        <div>
+          <span>Device</span>
+          <strong>板级和驱动</strong>
+          <small>UART / RS485 / EEPROM / sensors</small>
+        </div>
+        <div>
+          <span>Network</span>
+          <strong>轻量协议栈</strong>
+          <small>MQTT / Modbus / platform messages</small>
+        </div>
+      </div>
+    </section>
+
+    <section id="capabilities" class="section">
+      <div class="section-heading">
+        <p class="eyebrow">Capabilities</p>
+        <h2>为资源受限设备保留可脚本化的现场逻辑</h2>
+      </div>
+      <div class="feature-grid">
+        <article>
+          <span>01</span>
+          <h3>BASIC runtime</h3>
+          <p>提供 BASIC 词法、解析、格式化、执行和运行时服务，便于在 MCU 侧承载轻量业务脚本。</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>配置接口</h3>
+          <p>通过 basic_config_api 等接口把设备配置、运行参数和脚本逻辑连接到应用层。</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>工业协议</h3>
+          <p>提供 Modbus、MQTT、串口等面向现场总线和云端连接的基础协议模块。</p>
+        </article>
+        <article>
+          <span>04</span>
+          <h3>板级服务</h3>
+          <p>封装 UART、RS485、看门狗、EEPROM、网络芯片和传感器接口。</p>
+        </article>
+        <article>
+          <span>05</span>
+          <h3>STM32 目标</h3>
+          <p>项目入口按 STM32 系列和板卡拆分，当前包含 F1/F4/G4 等目标目录。</p>
+        </article>
+        <article>
+          <span>06</span>
+          <h3>移植模板</h3>
+          <p>projects/_template 提供新芯片或新板卡的构建、链接和调试起点。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="layers" class="section split">
+      <div class="section-heading">
+        <p class="eyebrow">Architecture</p>
+        <h2>像一套小型嵌入式系统一样分层</h2>
+      </div>
+      <div class="flow">
+        <div><b>Interpreter</b><small>BASIC 语言内核和公共运行时。</small></div>
+        <div><b>Application</b><small>产品入口、设备编排、网络流程和协议流程。</small></div>
+        <div><b>BSP / Platform</b><small>芯片、板级、总线、端口和外设适配。</small></div>
+        <div><b>Projects</b><small>只保存项目级构建和调试 wiring。</small></div>
+      </div>
+      <div class="module-list">
+        <p><strong>Core</strong> 不依赖特定芯片，面向可移植运行时。</p>
+        <p><strong>App</strong> 承接产品逻辑，可依赖配置、存储、驱动和平台适配。</p>
+        <p><strong>Platform</strong> 负责 MCU、板级资源、总线和移植层。</p>
+        <p><strong>projects</strong> 只做目标工程装配，不放可复用平台代码。</p>
+      </div>
+    </section>
+
+    <section id="targets" class="section start">
+      <div>
+        <p class="eyebrow">Targets</p>
+        <h2>从模板开始接入新的芯片或板卡</h2>
+        <p>新增产品时优先复用 `src` 下的解释器、应用、BSP、协议和驱动能力，只在 `projects` 中放项目级构建与调试入口。</p>
+      </div>
+      <pre><code>projects/
+  _template/
+  stm32/
+    f1/
+    f4/
+    g4/
+
+examples/basic/
+  BASIC business scripts</code></pre>
+    </section>
+  </main>
+
+  <footer>
+    <span>IoTEdge.Stm32 is the MCU branch of the IoTSharp edge family.</span>
+    <a href="https://iotsharp.net/">iotsharp.net</a>
+  </footer>
+</body>
+</html>
