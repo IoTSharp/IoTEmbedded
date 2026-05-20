@@ -1,6 +1,6 @@
 # IoTEmbedded
 
-IoTEmbedded 是 IoTSharp 生态的嵌入式 BASIC/C 运行时，覆盖 STM32、RTOS、bare-metal 和低资源 Linux。当前上游仓库仍为 `IoTSharp/IoTEmBASIC`，仓库内产品表达统一使用 `IoTEmbedded`。
+IoTEmbedded 是 IoTSharp 生态的嵌入式 BASIC/C 运行时，覆盖 STM32、RTOS、bare-metal 和低资源 Linux。仓库早期名称为 `IoTEmBASIC`，现在统一使用 `IoTEmbedded`。
 
 ## 定位
 
