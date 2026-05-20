@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>IoTEdge.Stm32 | MCU BASIC Runtime</title>
-  <meta name="description" content="IoTEdge.Stm32 是 IoTSharp 生态面向 STM32 和资源受限设备的 BASIC 解释器内核与嵌入式边缘运行时。">
+  <title>IoTEmbedded | Embedded BASIC/C Runtime</title>
+  <meta name="description" content="IoTEmbedded 是 IoTSharp 生态面向 STM32、RTOS、bare-metal 和低资源 Linux 的 BASIC/C 嵌入式边缘运行时。">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -25,16 +25,16 @@
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">IoTSharp Embedded Runtime</p>
-        <h1>IoTEdge.Stm32</h1>
+        <h1>IoTEmbedded</h1>
         <p class="hero-text">
-          MCU 上的 BASIC 解释器与边缘运行时。它把脚本解释、设备接口、网络协议、板级服务和 STM32 工程模板拆成可移植的嵌入式栈，适合低资源现场设备。
+          面向 STM32、RTOS、bare-metal 和低资源 Linux 的 BASIC/C 嵌入式运行时。它把脚本解释、设备接口、网络协议、板级服务和工程模板拆成可移植的嵌入式栈，适合低资源现场设备。
         </p>
         <div class="actions">
           <a class="primary" href="#layers">查看架构</a>
           <a class="secondary" href="https://github.com/IoTSharp/IoTEmBASIC">查看源码</a>
         </div>
       </div>
-      <div class="hero-diagram" aria-label="IoTEdge.Stm32 runtime layers">
+      <div class="hero-diagram" aria-label="IoTEmbedded runtime layers">
         <div>
           <span>Core</span>
           <strong>BASIC 解释器</strong>
@@ -62,7 +62,7 @@
         <article>
           <span>01</span>
           <h3>BASIC runtime</h3>
-          <p>提供 BASIC 词法、解析、格式化、执行和运行时服务，便于在 MCU 侧承载轻量业务脚本。</p>
+          <p>提供 BASIC 词法、解析、格式化、执行和运行时服务，便于在嵌入式侧承载轻量业务脚本。</p>
         </article>
         <article>
           <span>02</span>
@@ -81,8 +81,8 @@
         </article>
         <article>
           <span>05</span>
-          <h3>STM32 目标</h3>
-          <p>项目入口按 STM32 系列和板卡拆分，当前包含 F1/F4/G4 等目标目录。</p>
+          <h3>多嵌入式目标</h3>
+          <p>项目入口按 STM32、RTOS、bare-metal 和低资源 Linux 目标拆分，当前保留 F1/F4/G4 等 STM32 目录。</p>
         </article>
         <article>
           <span>06</span>
@@ -106,7 +106,7 @@
       <div class="module-list">
         <p><strong>Core</strong> 不依赖特定芯片，面向可移植运行时。</p>
         <p><strong>App</strong> 承接产品逻辑，可依赖配置、存储、驱动和平台适配。</p>
-        <p><strong>Platform</strong> 负责 MCU、板级资源、总线和移植层。</p>
+        <p><strong>Platform</strong> 负责 MCU、RTOS、低资源 Linux、板级资源、总线和移植层。</p>
         <p><strong>projects</strong> 只做目标工程装配，不放可复用平台代码。</p>
       </div>
     </section>
@@ -114,7 +114,7 @@
     <section id="targets" class="section start">
       <div>
         <p class="eyebrow">Targets</p>
-        <h2>从模板开始接入新的芯片或板卡</h2>
+        <h2>从模板开始接入新的芯片、RTOS 或低资源 Linux 目标</h2>
         <p>新增产品时优先复用 `src` 下的解释器、应用、BSP、协议和驱动能力，只在 `projects` 中放项目级构建与调试入口。</p>
       </div>
       <pre><code>projects/
@@ -123,6 +123,8 @@
     f1/
     f4/
     g4/
+  rtos/
+  linux-low-resource/
 
 examples/basic/
   BASIC business scripts</code></pre>
@@ -130,7 +132,7 @@ examples/basic/
   </main>
 
   <footer>
-    <span>IoTEdge.Stm32 is the MCU branch of the IoTSharp edge family.</span>
+    <span>IoTEmbedded covers embedded BASIC/C targets in the IoTSharp edge family.</span>
     <a href="https://iotsharp.net/">iotsharp.net</a>
   </footer>
 </body>

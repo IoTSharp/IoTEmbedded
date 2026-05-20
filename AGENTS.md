@@ -1,7 +1,6 @@
-# 仓库约束 (IoTEmBASIC / IoTEdge.Stm32)
+# 仓库约束 (IoTEmbedded)
 
-本仓库面向 STM32 + STM32 HAL + FreeRTOS + CMSIS_RTOS_V2 的纯 C 嵌入式工程。所有
-新增代码、目录调整、构建脚本变更都必须遵守以下硬性约束。
+本仓库面向 STM32、RTOS、bare-metal 和低资源 Linux 的纯 C 嵌入式工程。当前主要工程仍基于 STM32 + STM32 HAL + FreeRTOS + CMSIS_RTOS_V2。所有新增代码、目录调整、构建脚本变更都必须遵守以下硬性约束。
 
 ## 1. `src/` 目录布局
 
