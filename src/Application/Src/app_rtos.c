@@ -8,7 +8,7 @@
 #include "Protocol/Modbus/Inc/modbus_core_master.h"
 #include "Protocol/Mqtt/Inc/mqtt_client.h"
 
-#include "stm32f1xx_hal.h"
+#include "Board/Inc/bsp_hal.h"
 
 #if APP_ENABLE_CMSIS_RTOS
 #include "cmsis_os2.h"

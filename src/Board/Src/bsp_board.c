@@ -2,11 +2,13 @@
 #include "Network/Ch395/Inc/bsp_ch395.h"
 
 void bsp_board_init(void) {
+#if BSP_ENABLE_FULL_IO_MAP
   HAL_GPIO_WritePin(BSP_RS485_RE_GPIO_Port, BSP_RS485_RE_Pin, GPIO_PIN_RESET);
   // CH395Q 现在只走 UART4/CN2，启动时仍要把 SEL 拉高，避免芯片误判成别的接口模式。
   bsp_ch395_prepare_boot_pins();
   // 最新 SVG 原理图确认 PA4/RST1 是低有效外部复位输入；PA5/RST 是 CH395Q 复位输出，只能读取不能由 MCU 驱动。
   HAL_GPIO_WritePin(BSP_CH395_RSTI_GPIO_Port, BSP_CH395_RSTI_Pin, GPIO_PIN_SET);
+#endif
   HAL_GPIO_WritePin(BSP_BUZZER_GPIO_Port, BSP_BUZZER_Pin, GPIO_PIN_RESET);
 }
 

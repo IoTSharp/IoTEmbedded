@@ -25,6 +25,10 @@
 #define APP_ENABLE_MODBUS_TEST_READ 0
 #endif
 
+#ifndef APP_ENABLE_FULL_STACK
+#define APP_ENABLE_FULL_STACK 1
+#endif
+
 static void app_log_reset_cause(void);
 
 void app_init(void) {
@@ -37,10 +41,13 @@ void app_init(void) {
   network_mode_t network_mode = config_get_network_mode();
   const char *ch395_link_name = "CH395Q on UART4/CN2";
 
-  LOG_INFO("STM32F103VETX boot");
+  LOG_INFO("%s boot", BSP_BOARD_NAME);
   LOG_INFO("Firmware version: %s", CONFIG_VERSION);
+  LOG_INFO("MCU: %s debug=%s", BSP_MCU_NAME, BSP_DEBUG_UART_NAME);
   LOG_INFO("SYSCLK: %lu Hz", HAL_RCC_GetSysClockFreq());
   app_log_reset_cause();
+
+#if APP_ENABLE_FULL_STACK
   LOG_INFO("Network probe target: %s:%u every %lu ms", active_config.network_monitor.probe_host,
            active_config.network_monitor.probe_port, active_config.network_monitor.probe_interval_ms);
   LOG_INFO("Network mode: %s", config_network_mode_name(network_mode));
@@ -72,6 +79,9 @@ void app_init(void) {
   device_manager_init();
   init_modbus();
   (void)bsp_rs485_start_receive_it();
+#else
+  LOG_INFO("Bring-up mode: full network/device stack disabled");
+#endif
   (void)bsp_debug_start_receive_it();
 }
 
@@ -87,6 +97,7 @@ void app_process_once(uint32_t now_ms) {
     (void)modbus_test_read_hold_register(1U, 0x0000U, 1U);
   }
 #endif
+#if APP_ENABLE_FULL_STACK
   network_manager_poll();
   // MQTT 只依赖 network_socket 工厂接口，链路切换时由网络层关闭旧 socket 并在下一轮重连。
   (void)mqtt_client_maintain(now_ms, active_config.loop.keep_in_touch_with_server_interval);
@@ -94,6 +105,9 @@ void app_process_once(uint32_t now_ms) {
     (void)platform_messages_request_register_info_as_needed(now_ms, active_config.loop.req_devices_reg_info_interval);
   }
   device_manager_poll(now_ms, active_config.loop.report_devices_data_interval);
+#else
+  (void)now_ms;
+#endif
 }
 
 void app_loop(void) {

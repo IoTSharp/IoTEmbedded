@@ -8,7 +8,7 @@
 #include "Protocol/Modbus/Inc/modbus_core_define.h"
 #include "Protocol/Modbus/Inc/modbus_core_master.h"
 
-#include "stm32f1xx_hal.h"
+#include "Board/Inc/bsp_hal.h"
 
 #include <stdbool.h>
 #include <stdint.h>

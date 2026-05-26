@@ -2,7 +2,7 @@
 #define CH395_DRIVER_H
 
 #include "Network/Ch395/Inc/ch395_defs.h"
-#include "stm32f1xx_hal.h"
+#include "Board/Inc/bsp_hal.h"
 #include <stdbool.h>
 #include <stdint.h>
 

@@ -4,7 +4,7 @@
 #include "Board/Inc/bsp_watchdog.h"
 #include "Interpreter/Inc/basic.h"
 
-#include "stm32f1xx_hal.h"
+#include "Board/Inc/bsp_hal.h"
 
 #include <ctype.h>
 #include <stdbool.h>

@@ -1,7 +1,7 @@
 #ifndef APP_TYPES_H
 #define APP_TYPES_H
 
-#include "stm32f1xx_hal.h"
+#include "Board/Inc/bsp_hal.h"
 #include <stdint.h>
 
 #ifdef __cplusplus

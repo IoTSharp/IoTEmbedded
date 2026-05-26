@@ -1,7 +1,7 @@
 #ifndef BSP_BOARD_H
 #define BSP_BOARD_H
 
-#include "stm32f1xx_hal.h"
+#include "Board/Inc/bsp_hal.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -22,9 +22,24 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_UART4_HANDLE      (&huart4)
 #define BSP_UART5_HANDLE      (&huart5)
 
+#if defined(STM32L475xx) || defined(STM32L475VE) || defined(STM32L4)
+#define BSP_BOARD_NAME         "ALIENTEK Pandora STM32L475"
+#define BSP_MCU_NAME           "STM32L475VET6"
+#define BSP_DEBUG_UART_NAME    "USART1/ST-LINK"
+#define BSP_ENABLE_FULL_IO_MAP 0
+#define BSP_DEBUG_UART_HANDLE  BSP_UART1_HANDLE
+#define BSP_RS485_UART_HANDLE  BSP_UART2_HANDLE
+#define BSP_RS232_UART_HANDLE  BSP_UART5_HANDLE
+#else
+#define BSP_BOARD_NAME         "STM32F103VETX"
+#define BSP_MCU_NAME           "STM32F103VET6"
+#define BSP_DEBUG_UART_NAME    "USART2"
+#define BSP_ENABLE_FULL_IO_MAP 1
 #define BSP_DEBUG_UART_HANDLE  BSP_UART2_HANDLE
 #define BSP_RS485_UART_HANDLE  BSP_UART1_HANDLE
 #define BSP_RS232_UART_HANDLE  BSP_UART5_HANDLE
+#endif
+
 #define BSP_AT24C_I2C_HANDLE  (&hi2c1)
 #define BSP_IWDG_HANDLE       (&hiwdg)
 #define BSP_RTC_HANDLE        (&hrtc)

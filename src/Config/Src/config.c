@@ -20,7 +20,7 @@
 #include "Protocol/Platform/Inc/platform_messages.h"
 #include "Devices/Inc/temperature_humidity_sensor.h"
 #include "Common/Inc/util.h"
-#include "stm32f1xx_hal.h"
+#include "Board/Inc/bsp_hal.h"
 #if APP_ENABLE_CMSIS_RTOS
 #include "FreeRTOS.h"
 #endif
@@ -51,6 +51,10 @@
 #define CONFIG_AIR_AT_LONG_TIMEOUT_MS 3000U
 /* CRC 覆盖 crc 字段之前的全部配置字节，避免结构体尾部填充影响校验长度。 */
 #define CONFIG_CRC_DATA_LEN ((uint16_t)offsetof(config_t, crc))
+
+#ifndef CONFIG_ENABLE_STORAGE_LOAD
+#define CONFIG_ENABLE_STORAGE_LOAD 1
+#endif
 
 typedef enum {
   CONFIG_SHELL_MODE_HUMAN = 0,
@@ -249,9 +253,13 @@ static bool config_device_table_add(uint16_t service_id, uint16_t manufacture_mo
 static void config_print_device_config(void);
 
 void config_init(void) {
+#if CONFIG_ENABLE_STORAGE_LOAD
   if (!config_load_from_storage()) {
     config_reset_to_default();
   }
+#else
+  config_reset_to_default();
+#endif
 }
 
 static bool config_load_from_storage(void) {
@@ -306,6 +314,9 @@ const char *config_network_mode_name(network_mode_t mode) {
 }
 
 ErrorStatus config_write_into_eeprom(void) {
+#if !CONFIG_ENABLE_STORAGE_LOAD
+  return ERROR;
+#else
   active_config.crc = GetCRCData((uint8_t *)&active_config, CONFIG_CRC_DATA_LEN);
   if (eeprom_write_config_data(&active_config, sizeof(active_config)) != SUCCESS) {
     return ERROR;
@@ -322,6 +333,7 @@ ErrorStatus config_write_into_eeprom(void) {
   }
 
   return SUCCESS;
+#endif
 }
 
 void config_receive_cmd_byte(uint8_t byte) {
