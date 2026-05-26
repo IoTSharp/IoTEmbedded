@@ -30,6 +30,8 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_DEBUG_UART_HANDLE  BSP_UART1_HANDLE
 #define BSP_RS485_UART_HANDLE  BSP_UART2_HANDLE
 #define BSP_RS232_UART_HANDLE  BSP_UART5_HANDLE
+#define BSP_BUZZER_GPIO_Port   GPIOB
+#define BSP_BUZZER_Pin         GPIO_PIN_2
 #else
 #define BSP_BOARD_NAME         "STM32F103VETX"
 #define BSP_MCU_NAME           "STM32F103VET6"
@@ -38,6 +40,8 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_DEBUG_UART_HANDLE  BSP_UART2_HANDLE
 #define BSP_RS485_UART_HANDLE  BSP_UART1_HANDLE
 #define BSP_RS232_UART_HANDLE  BSP_UART5_HANDLE
+#define BSP_BUZZER_GPIO_Port   GPIOE
+#define BSP_BUZZER_Pin         GPIO_PIN_7
 #endif
 
 #define BSP_AT24C_I2C_HANDLE  (&hi2c1)
@@ -70,9 +74,6 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_AIR4G_NETSTATE_Pin       GPIO_PIN_1
 #define BSP_AIR4G_RST_GPIO_Port      GPIOE
 #define BSP_AIR4G_RST_Pin            GPIO_PIN_2
-
-#define BSP_BUZZER_GPIO_Port GPIOE
-#define BSP_BUZZER_Pin       GPIO_PIN_7
 
 #define BSP_AT24C_7BIT_ADDRESS 0x50U
 

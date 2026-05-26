@@ -130,7 +130,13 @@ bool network_prepare_ch395q_probe(void) {
 
 static void app_log_reset_cause(void) {
   const bool pin = __HAL_RCC_GET_FLAG(RCC_FLAG_PINRST) != RESET;
+#if defined(RCC_FLAG_PORRST)
   const bool por = __HAL_RCC_GET_FLAG(RCC_FLAG_PORRST) != RESET;
+#elif defined(RCC_FLAG_BORRST)
+  const bool por = __HAL_RCC_GET_FLAG(RCC_FLAG_BORRST) != RESET;
+#else
+  const bool por = false;
+#endif
   const bool software = __HAL_RCC_GET_FLAG(RCC_FLAG_SFTRST) != RESET;
   const bool iwdg = __HAL_RCC_GET_FLAG(RCC_FLAG_IWDGRST) != RESET;
   const bool wwdg = __HAL_RCC_GET_FLAG(RCC_FLAG_WWDGRST) != RESET;

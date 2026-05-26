@@ -43,7 +43,7 @@ void bsp_uart_flush_rx(UART_HandleTypeDef *uart) {
   /* STM32F1 UART 没有硬件 FIFO，但 RXNE/ORE 可能残留一字节或错误状态。
    * CH395Q UART 帧没有长度头，下一条命令前必须清干净，否则会把旧字节误当成返回值。 */
   for (uint8_t guard = 0U; guard < 32U && __HAL_UART_GET_FLAG(uart, UART_FLAG_RXNE) != RESET; guard++) {
-    (void)__HAL_UART_FLUSH_DRREGISTER(uart);
+    __HAL_UART_FLUSH_DRREGISTER(uart);
   }
   __HAL_UART_CLEAR_OREFLAG(uart);
 }

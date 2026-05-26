@@ -20,6 +20,7 @@
 #include "Protocol/Platform/Inc/platform_messages.h"
 #include "Devices/Inc/temperature_humidity_sensor.h"
 #include "Common/Inc/util.h"
+#include "Board/Inc/bsp_board.h"
 #include "Board/Inc/bsp_hal.h"
 #if APP_ENABLE_CMSIS_RTOS
 #include "FreeRTOS.h"
@@ -768,7 +769,8 @@ static void config_auth_print_banner(void) {
   LOG_CMD_RESP(" | |_) |  _| | |\\/| |");
   LOG_CMD_RESP(" |  __/| |___| |  | |");
   LOG_CMD_RESP(" |_|   |_____|_|  |_|");
-  LOG_CMD_RESP("firmware=STM32F103VETX version=%s mcu=STM32F103VET6 sysclk=%lu", CONFIG_VERSION, HAL_RCC_GetSysClockFreq());
+  LOG_CMD_RESP("firmware=%s version=%s mcu=%s sysclk=%lu", BSP_BOARD_NAME, CONFIG_VERSION, BSP_MCU_NAME,
+               HAL_RCC_GetSysClockFreq());
   LOG_CMD_RESP("ip.local=%s gateway=%s mask=%s", active_config.mqtt.local_ip, active_config.mqtt.gateway_ip,
                active_config.mqtt.mask_ip);
   LOG_CMD_RESP("mqtt.server=%s:%u probe=%s:%u", active_config.mqtt.ip, active_config.mqtt.port,
@@ -1230,7 +1232,8 @@ static void config_print_help(void) {
 static void config_print_uname(void) {
   char uid[25] = {0};
   config_format_device_uid(uid, sizeof(uid));
-  LOG_CMD_RESP("firmware=STM32F103VETX version=%s mcu=STM32F103VET6 sysclk=%lu", CONFIG_VERSION, HAL_RCC_GetSysClockFreq());
+  LOG_CMD_RESP("firmware=%s version=%s mcu=%s sysclk=%lu", BSP_BOARD_NAME, CONFIG_VERSION, BSP_MCU_NAME,
+               HAL_RCC_GetSysClockFreq());
   LOG_CMD_RESP("device.uid=%s", uid);
   LOG_CMD_RESP("primary=%s debug=USART2/115200", config_network_link_str(NETWORK_LINK_CH395Q));
 }
