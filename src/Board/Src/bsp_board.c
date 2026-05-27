@@ -1,5 +1,11 @@
 #include "Board/Inc/bsp_board.h"
 #include "Network/Ch395/Inc/bsp_ch395.h"
+#if defined(STM32L475xx) || defined(STM32L475VE) || defined(STM32L4)
+#include "Board/Pandora/Inc/pandora_display.h"
+#include "Board/Pandora/Inc/pandora_board_resources.h"
+#else
+#include "Board/PowerEnvDaq/Inc/power_env_daq_board_resources.h"
+#endif
 
 void bsp_board_init(void) {
 #if BSP_ENABLE_FULL_IO_MAP
@@ -32,4 +38,36 @@ void bsp_delay_us(uint32_t us) {
 
 uint32_t bsp_get_tick_ms(void) {
   return HAL_GetTick();
+}
+
+const board_resource_t *bsp_board_resources(size_t *count) {
+#if defined(STM32L475xx) || defined(STM32L475VE) || defined(STM32L4)
+  return pandora_board_resources(count);
+#else
+  return power_env_daq_board_resources(count);
+#endif
+}
+
+const board_resource_t *bsp_board_display_resource(void) {
+  size_t count = 0U;
+  const board_resource_t *resources = bsp_board_resources(&count);
+  if (resources == NULL) {
+    return NULL;
+  }
+
+  for (size_t i = 0U; i < count; i++) {
+    if (resources[i].category == BOARD_RESOURCE_DISPLAY) {
+      return &resources[i];
+    }
+  }
+
+  return NULL;
+}
+
+ErrorStatus bsp_board_display_init(void) {
+#if BSP_HAS_DISPLAY
+  return pandora_display_init();
+#else
+  return ERROR;
+#endif
 }

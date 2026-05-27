@@ -2,6 +2,7 @@
 #define BSP_BOARD_H
 
 #include "Board/Inc/bsp_hal.h"
+#include "Board/Inc/board_resources.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -41,6 +42,13 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_HAS_AIR724UG       0
 #define BSP_HAS_AT24C          0
 #define BSP_HAS_AP6181         1
+#define BSP_HAS_DISPLAY        1
+#define BSP_DISPLAY_NAME       "1.3 inch TFT LCD"
+#define BSP_DISPLAY_CONTROLLER "ST7789-like"
+#define BSP_DISPLAY_KIND       BOARD_DISPLAY_KIND_TFT_LCD
+#define BSP_DISPLAY_WIDTH      240U
+#define BSP_DISPLAY_HEIGHT     240U
+#define BSP_DISPLAY_PIXEL_FORMAT BOARD_DISPLAY_PIXEL_FORMAT_RGB565
 #define BSP_DEBUG_UART_HANDLE  BSP_UART1_HANDLE
 #define BSP_RS485_UART_HANDLE  BSP_UART2_HANDLE
 #define BSP_RS232_UART_HANDLE  NULL
@@ -61,6 +69,13 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_HAS_AIR724UG       1
 #define BSP_HAS_AT24C          1
 #define BSP_HAS_AP6181         0
+#define BSP_HAS_DISPLAY        0
+#define BSP_DISPLAY_NAME       "none"
+#define BSP_DISPLAY_CONTROLLER "none"
+#define BSP_DISPLAY_KIND       BOARD_DISPLAY_KIND_NONE
+#define BSP_DISPLAY_WIDTH      0U
+#define BSP_DISPLAY_HEIGHT     0U
+#define BSP_DISPLAY_PIXEL_FORMAT BOARD_DISPLAY_PIXEL_FORMAT_NONE
 #define BSP_UART4_HANDLE       (&huart4)
 #define BSP_UART5_HANDLE       (&huart5)
 #define BSP_DEBUG_UART_HANDLE  BSP_UART2_HANDLE
@@ -116,6 +131,9 @@ void bsp_board_init(void);
 void bsp_delay_ms(uint32_t ms);
 void bsp_delay_us(uint32_t us);
 uint32_t bsp_get_tick_ms(void);
+const board_resource_t *bsp_board_resources(size_t *count);
+const board_resource_t *bsp_board_display_resource(void);
+ErrorStatus bsp_board_display_init(void);
 
 #ifdef __cplusplus
 }

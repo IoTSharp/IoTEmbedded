@@ -2,6 +2,7 @@
 #define BOARD_RESOURCES_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,6 +21,7 @@ typedef enum {
 } board_resource_category_t;
 
 typedef enum {
+  BOARD_RESOURCE_STATUS_NOT_SUPPORTED,
   BOARD_RESOURCE_STATUS_PLANNED,
   BOARD_RESOURCE_STATUS_IOC_MAPPED,
   BOARD_RESOURCE_STATUS_DRIVER_PENDING,
@@ -32,6 +34,21 @@ typedef enum {
   BOARD_RESOURCE_SCOPE_BOARD_SPECIFIC,
 } board_resource_scope_t;
 
+typedef enum {
+  BOARD_DISPLAY_KIND_NONE,
+  BOARD_DISPLAY_KIND_CHARACTER,
+  BOARD_DISPLAY_KIND_TFT_LCD,
+  BOARD_DISPLAY_KIND_OLED,
+  BOARD_DISPLAY_KIND_EINK,
+} board_display_kind_t;
+
+typedef enum {
+  BOARD_DISPLAY_PIXEL_FORMAT_NONE,
+  BOARD_DISPLAY_PIXEL_FORMAT_MONO,
+  BOARD_DISPLAY_PIXEL_FORMAT_RGB565,
+  BOARD_DISPLAY_PIXEL_FORMAT_RGB888,
+} board_display_pixel_format_t;
+
 typedef struct {
   const char *name;
   board_resource_category_t category;
@@ -41,11 +58,18 @@ typedef struct {
   const char *pins;
   const char *protocol;
   const char *notes;
+  board_display_kind_t display_kind;
+  uint16_t display_width;
+  uint16_t display_height;
+  board_display_pixel_format_t display_pixel_format;
+  const char *display_controller;
 } board_resource_t;
 
 const char *board_resource_category_name(board_resource_category_t category);
 const char *board_resource_status_name(board_resource_status_t status);
 const char *board_resource_scope_name(board_resource_scope_t scope);
+const char *board_display_kind_name(board_display_kind_t kind);
+const char *board_display_pixel_format_name(board_display_pixel_format_t pixel_format);
 
 #ifdef __cplusplus
 }

@@ -1,12 +1,14 @@
 #include "Interpreter/Inc/app_basic.h"
 
 #include "Common/Inc/log.h"
+#include "Board/Inc/bsp_board.h"
 #include "Interpreter/Inc/basic.h"
 #include "Interpreter/Inc/basic_config_api.h"
 #include "Interpreter/Inc/basic_format.h"
 #include "Interpreter/Inc/basic_json.h"
 #include "Interpreter/Inc/basic_modbus.h"
 #include "Interpreter/Inc/basic_mqtt.h"
+#include "Interpreter/Inc/basic_qb45_graphics.h"
 #include "Interpreter/Inc/basic_serial.h"
 
 #include <stdbool.h>
@@ -113,7 +115,11 @@ static ErrorStatus app_basic_load_from_slot(app_basic_slot_t slot) {
       basic_format_register(app_basic_interpreter) != SUCCESS ||
       basic_json_register(app_basic_interpreter) != SUCCESS ||
       basic_config_register(app_basic_interpreter) != SUCCESS ||
-      basic_mqtt_register(app_basic_interpreter) != SUCCESS) {
+      basic_mqtt_register(app_basic_interpreter) != SUCCESS
+#if BSP_HAS_DISPLAY
+      || basic_qb45_graphics_register(app_basic_interpreter) != SUCCESS
+#endif
+  ) {
     app_basic_close_current();
     return ERROR;
   }

@@ -27,6 +27,8 @@ const char *board_resource_category_name(board_resource_category_t category) {
 
 const char *board_resource_status_name(board_resource_status_t status) {
   switch (status) {
+  case BOARD_RESOURCE_STATUS_NOT_SUPPORTED:
+    return "not-supported";
   case BOARD_RESOURCE_STATUS_PLANNED:
     return "planned";
   case BOARD_RESOURCE_STATUS_IOC_MAPPED:
@@ -48,6 +50,38 @@ const char *board_resource_scope_name(board_resource_scope_t scope) {
     return "common";
   case BOARD_RESOURCE_SCOPE_BOARD_SPECIFIC:
     return "board-specific";
+  default:
+    return "unknown";
+  }
+}
+
+const char *board_display_kind_name(board_display_kind_t kind) {
+  switch (kind) {
+  case BOARD_DISPLAY_KIND_NONE:
+    return "none";
+  case BOARD_DISPLAY_KIND_CHARACTER:
+    return "character";
+  case BOARD_DISPLAY_KIND_TFT_LCD:
+    return "tft-lcd";
+  case BOARD_DISPLAY_KIND_OLED:
+    return "oled";
+  case BOARD_DISPLAY_KIND_EINK:
+    return "eink";
+  default:
+    return "unknown";
+  }
+}
+
+const char *board_display_pixel_format_name(board_display_pixel_format_t pixel_format) {
+  switch (pixel_format) {
+  case BOARD_DISPLAY_PIXEL_FORMAT_NONE:
+    return "none";
+  case BOARD_DISPLAY_PIXEL_FORMAT_MONO:
+    return "mono";
+  case BOARD_DISPLAY_PIXEL_FORMAT_RGB565:
+    return "rgb565";
+  case BOARD_DISPLAY_PIXEL_FORMAT_RGB888:
+    return "rgb888";
   default:
     return "unknown";
   }

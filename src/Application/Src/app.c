@@ -36,6 +36,11 @@ void app_init(void) {
   (void)bsp_watchdog_refresh();
   config_init();
   log_init(&active_config.log);
+#if BSP_HAS_DISPLAY
+  if (bsp_board_display_init() != SUCCESS) {
+    LOG_WARNING("Board display binding init failed");
+  }
+#endif
   app_basic_init();
 
   network_mode_t network_mode = config_get_network_mode();

@@ -45,6 +45,7 @@ target_sources(STM32L475VETX PRIVATE
 	${SRC_ROOT}/Application/Src/app_rtos.c
 	${SRC_ROOT}/Application/Src/modbus_test.c
 	# Board
+	${SRC_ROOT}/Board/Pandora/Src/pandora_display.c
 	${SRC_ROOT}/Board/Pandora/Src/pandora_board_resources.c
 	${SRC_ROOT}/Board/Src/board_resources.c
 	${SRC_ROOT}/Board/Src/bsp_board.c
@@ -69,6 +70,9 @@ target_sources(STM32L475VETX PRIVATE
 	${SRC_ROOT}/Devices/Src/telemetry_reporter.c
 	${SRC_ROOT}/Devices/Src/temperature_humidity_sensor.c
 	${SRC_ROOT}/Devices/Src/ups_detector_interface.c
+	# Display
+	${SRC_ROOT}/Display/Src/display_api.c
+	${SRC_ROOT}/Display/Src/display_st7789.c
 	# Interpreter
 	${SRC_ROOT}/Interpreter/Src/app_basic.c
 	${SRC_ROOT}/Interpreter/Src/basic.c
@@ -77,6 +81,7 @@ target_sources(STM32L475VETX PRIVATE
 	${SRC_ROOT}/Interpreter/Src/basic_json.c
 	${SRC_ROOT}/Interpreter/Src/basic_modbus.c
 	${SRC_ROOT}/Interpreter/Src/basic_mqtt.c
+	${SRC_ROOT}/Interpreter/Src/basic_qb45_graphics.c
 	${SRC_ROOT}/Interpreter/Src/basic_serial.c
 	# Modem
 	${SRC_ROOT}/Modem/Src/bsp_air724.c
