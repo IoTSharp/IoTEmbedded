@@ -19,7 +19,7 @@ The board inventory is based on the RT-Thread Studio BSP
 | AP6181 WiFi | SDMMC1 + GPIO | PC8/PC9/PC10/PC11/PC12/PD2, IRQ PC5, EN PD1 | IOC mapped, driver pending |
 | W25Q128 flash | QUADSPI | PE10/PE11/PE12/PE13/PE14/PE15 | IOC mapped, storage driver pending |
 | TF card | SPI1 + GPIO | PA5/PA6/PA7, CS PC3 | IOC mapped, FatFs driver pending |
-| 1.3 inch TFT LCD | SPI3 + GPIO | PB3/PB5, CS PD7, DC PB4, RES PB6, PWR PB7 | IOC mapped, panel driver pending |
+| 1.3 inch TFT LCD | SPI3 + GPIO | PB3/PB5, CS PD7, DC PB4, RES PB6, PWR PB7 | ST7789 driver ready; SPI3 is initialized in `Board/Pandora` because this CubeMX import does not generate `hspi3` |
 | ICM-20608 IMU | I2C3 | PC0/PC1 | protocol driver pending |
 | AHT10 | software I2C candidate | SCL PD6, SDA PC1 | schematic/timing review needed |
 | ES8388 audio | SAI1 + I2C3 | PE2/PE3/PE4/PE5/PE6, PC0/PC1 | amplifier-enable pin review needed |
@@ -48,7 +48,7 @@ stays in `Board/Pandora`.
    HAL modules for SDMMC1, QSPI, SPI, SAI, TIM, and GPIO are generated.
 2. Bring up low-risk GPIO first: keys, RGB LED, beep, motor PWM.
 3. Bring up storage buses: W25Q128 QSPI, then TF card over SPI1.
-4. Bring up display over SPI3.
+4. Extend display support with text rendering or a framebuffer if `PRINT`/`PAINT` semantics are needed.
 5. Bring up I2C sensors: ICM-20608 first, then AHT10 after shared SDA review.
 6. Bring up AP6181 SDIO WiFi and bind it into the network socket abstraction.
 7. Bring up ES8388 audio after confirming the amplifier-enable pin assignment.

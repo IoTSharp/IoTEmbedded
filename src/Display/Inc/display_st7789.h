@@ -25,8 +25,11 @@ typedef struct {
   void *bus_context;
   display_st7789_bus_t bus;
   display_size_t size;
+  uint16_t x_offset;
+  uint16_t y_offset;
   display_color_pair_t colors;
   display_text_cursor_t cursor;
+  bool initialized;
 } display_st7789_context_t;
 
 const display_driver_t *display_st7789_driver(void);

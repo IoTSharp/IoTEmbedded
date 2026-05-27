@@ -26,6 +26,7 @@ src/<Module>[/<SubModule>]/
 | `Common/` | 公共工具（log、md5、util、通用类型） |
 | `Config/` | 配置 / 网络配置 |
 | `Devices/` | 业务设备抽象（空调、电表、开关、传感器等） |
+| `Display/` | 显示抽象、显示驱动适配（如 ST7789） |
 | `Interpreter/` | BASIC 核心解释器、运行封装、脚本加载适配 |
 | `Modem/` | 模组（Air724 等） |
 | `Network/` | 网络管理、Socket、时间同步；`Network/Ch395/` 为 CH395 子模块 |
@@ -108,7 +109,7 @@ src/<Module>[/<SubModule>]/
 1. `git status` 确认 rename 而非 add+delete。
 2. grep 校验：
    ```
-   ^#include "(Application|Board|Bus/...|Common|Config|Devices|Interpreter|Modem|Network|Network/Ch395|Protocol/Modbus|Protocol/Mqtt|Protocol/Platform|Storage)/[A-Za-z0-9_]+\.h"
+   ^#include "(Application|Board|Bus/...|Common|Config|Devices|Display|Interpreter|Modem|Network|Network/Ch395|Protocol/Modbus|Protocol/Mqtt|Protocol/Platform|Storage)/[A-Za-z0-9_]+\.h"
    ```
    返回 0 命中（即不存在缺少 `/Inc/` 段的模块前缀包含）。
 3. 在 VisualGDB / CMake 构建一次，确保所有 include 路径解析成功。

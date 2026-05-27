@@ -44,7 +44,7 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_HAS_AP6181         1
 #define BSP_HAS_DISPLAY        1
 #define BSP_DISPLAY_NAME       "1.3 inch TFT LCD"
-#define BSP_DISPLAY_CONTROLLER "ST7789-like"
+#define BSP_DISPLAY_CONTROLLER "ST7789"
 #define BSP_DISPLAY_KIND       BOARD_DISPLAY_KIND_TFT_LCD
 #define BSP_DISPLAY_WIDTH      240U
 #define BSP_DISPLAY_HEIGHT     240U

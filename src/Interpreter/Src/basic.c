@@ -12856,6 +12856,53 @@ _exit:
 	return result;
 }
 
+/* Pop an optional argument value; comma-only positions are returned as NIL. */
+int mb_pop_optional_value(struct mb_interpreter_t* s, void** l, mb_value_t* val, bool_t* has_arg) {
+	int result = MB_FUNC_OK;
+	_ls_node_t* ast = 0;
+	_object_t* obj = 0;
+
+	if(!s || !l || !val || !has_arg) {
+		result = MB_FUNC_ERR;
+
+		goto _exit;
+	}
+
+	mb_make_nil(*val);
+	*has_arg = false;
+	ast = (_ls_node_t*)*l;
+#if _MULTILINE_STATEMENT
+	if(_multiline_statement(s)) {
+		obj = ast ? (_object_t*)ast->data : 0;
+		while(_IS_EOS(obj)) {
+			ast = ast->next;
+			obj = ast ? (_object_t*)ast->data : 0;
+		}
+	} else {
+		obj = ast ? (_object_t*)ast->data : 0;
+	}
+#else /* _MULTILINE_STATEMENT */
+	obj = ast ? (_object_t*)ast->data : 0;
+#endif /* _MULTILINE_STATEMENT */
+	if(!obj || _IS_FUNC(obj, _core_close_bracket) || _IS_EOS(obj)) {
+		goto _exit;
+	}
+
+	*has_arg = true;
+	if(_IS_SEP(obj, ',')) {
+		ast = ast->next;
+	} else {
+		result = mb_pop_value(s, (void**)&ast, val);
+		if(result != MB_FUNC_OK)
+			goto _exit;
+	}
+
+_exit:
+	*l = ast;
+
+	return result;
+}
+
 /* Pop an integer argument */
 int mb_pop_int(struct mb_interpreter_t* s, void** l, int_t* val) {
 	int result = MB_FUNC_OK;

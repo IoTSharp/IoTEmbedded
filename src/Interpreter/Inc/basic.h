@@ -618,6 +618,7 @@ MBAPI int mb_attempt_func_end(struct mb_interpreter_t* s, void** l);
 MBAPI int mb_attempt_open_bracket(struct mb_interpreter_t* s, void** l);
 MBAPI int mb_attempt_close_bracket(struct mb_interpreter_t* s, void** l);
 MBAPI int mb_has_arg(struct mb_interpreter_t* s, void** l);
+MBAPI int mb_pop_optional_value(struct mb_interpreter_t* s, void** l, mb_value_t* val, bool_t* has_arg);
 MBAPI int mb_pop_int(struct mb_interpreter_t* s, void** l, int_t* val);
 MBAPI int mb_pop_real(struct mb_interpreter_t* s, void** l, real_t* val);
 MBAPI int mb_pop_string(struct mb_interpreter_t* s, void** l, char** val);
