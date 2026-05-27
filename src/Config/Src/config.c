@@ -889,7 +889,7 @@ static void config_dispatch_cmd(char *line) {
   } else if (strcmp(line, "free") == 0) {
     config_print_free();
   } else if (strcmp(line, "dmesg") == 0) {
-    LOG_CMD_RESP("dmesg: ring buffer not enabled; use live USART2 log output");
+    LOG_CMD_RESP("dmesg: ring buffer not enabled; use live %s log output", BSP_DEBUG_UART_NAME);
   } else if (strcmp(line, "reboot") == 0) {
     if (config_require_root()) {
       LOG_CMD_RESP("rebooting");
@@ -1235,7 +1235,7 @@ static void config_print_uname(void) {
   LOG_CMD_RESP("firmware=%s version=%s mcu=%s sysclk=%lu", BSP_BOARD_NAME, CONFIG_VERSION, BSP_MCU_NAME,
                HAL_RCC_GetSysClockFreq());
   LOG_CMD_RESP("device.uid=%s", uid);
-  LOG_CMD_RESP("primary=%s debug=USART2/115200", config_network_link_str(NETWORK_LINK_CH395Q));
+  LOG_CMD_RESP("primary=%s debug=%s/115200", BSP_PRIMARY_NETWORK_NAME, BSP_DEBUG_UART_NAME);
 }
 
 static void config_print_uptime(void) {
@@ -1935,7 +1935,7 @@ static void config_modbus_print_registers(const char *prefix, const char *kind, 
 
 static void config_handle_rs485_cmd(char *args) {
   if (strcmp(args, "status") == 0) {
-    LOG_CMD_RESP("rs485.host.port=USART1 tx=PA9 rx=PA10 de=PA12 de_rx=0 de_tx=1");
+    LOG_CMD_RESP("rs485.host.port=%s %s", BSP_RS485_UART_NAME, BSP_RS485_PIN_DESC);
     LOG_CMD_RESP("rs485.host.baud=%lu data_bits=8 parity=none stop_bits=1", bsp_rs485_get_baud_rate());
   } else if (strncmp(args, "baud ", 5) == 0) {
     uint32_t baud_rate = 0U;

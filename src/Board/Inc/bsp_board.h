@@ -30,6 +30,9 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_BOARD_NAME         "ALIENTEK Pandora STM32L475"
 #define BSP_MCU_NAME           "STM32L475VET6"
 #define BSP_DEBUG_UART_NAME    "USART1/ST-LINK"
+#define BSP_PRIMARY_NETWORK_NAME "AP6181 WiFi/SDMMC1"
+#define BSP_RS485_UART_NAME    "USART2"
+#define BSP_RS485_PIN_DESC     "tx=PA2 rx=PA3 de=PA12 de_rx=0 de_tx=1"
 #define BSP_ENABLE_FULL_IO_MAP 0
 #define BSP_HAS_UART4          0
 #define BSP_HAS_UART5          0
@@ -47,6 +50,9 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_BOARD_NAME         "STM32F103VETX"
 #define BSP_MCU_NAME           "STM32F103VET6"
 #define BSP_DEBUG_UART_NAME    "USART2"
+#define BSP_PRIMARY_NETWORK_NAME "CH395Q/UART4/CN2"
+#define BSP_RS485_UART_NAME    "USART1"
+#define BSP_RS485_PIN_DESC     "tx=PA9 rx=PA10 de=PA12 de_rx=0 de_tx=1"
 #define BSP_ENABLE_FULL_IO_MAP 1
 #define BSP_HAS_UART4          1
 #define BSP_HAS_UART5          1
