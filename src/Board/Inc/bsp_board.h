@@ -47,7 +47,7 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_BUZZER_GPIO_Port   GPIOB
 #define BSP_BUZZER_Pin         GPIO_PIN_2
 #else
-#define BSP_BOARD_NAME         "STM32F103VETX"
+#define BSP_BOARD_NAME         "PowerEnvDaq STM32F103"
 #define BSP_MCU_NAME           "STM32F103VET6"
 #define BSP_DEBUG_UART_NAME    "USART2"
 #define BSP_PRIMARY_NETWORK_NAME "CH395Q/UART4/CN2"

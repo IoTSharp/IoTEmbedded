@@ -1,53 +1,42 @@
 #ifndef PANDORA_BOARD_RESOURCES_H
 #define PANDORA_BOARD_RESOURCES_H
 
+#include "Board/Inc/board_resources.h"
 #include <stddef.h>
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-  PANDORA_RESOURCE_NETWORK,
-  PANDORA_RESOURCE_STORAGE,
-  PANDORA_RESOURCE_DISPLAY,
-  PANDORA_RESOURCE_SENSOR,
-  PANDORA_RESOURCE_AUDIO,
-  PANDORA_RESOURCE_ACTUATOR,
-  PANDORA_RESOURCE_USER_IO,
-  PANDORA_RESOURCE_EXPANSION,
-  PANDORA_RESOURCE_DEBUG,
-} pandora_resource_category_t;
+typedef board_resource_category_t pandora_resource_category_t;
+typedef board_resource_status_t pandora_resource_status_t;
+typedef board_resource_scope_t pandora_resource_scope_t;
+typedef board_resource_t pandora_resource_t;
 
-typedef enum {
-  PANDORA_RESOURCE_STATUS_PLANNED,
-  PANDORA_RESOURCE_STATUS_IOC_MAPPED,
-  PANDORA_RESOURCE_STATUS_DRIVER_PENDING,
-  PANDORA_RESOURCE_STATUS_READY,
-  PANDORA_RESOURCE_STATUS_CONFLICT_NEEDS_REVIEW,
-} pandora_resource_status_t;
+#define PANDORA_RESOURCE_NETWORK BOARD_RESOURCE_NETWORK
+#define PANDORA_RESOURCE_STORAGE BOARD_RESOURCE_STORAGE
+#define PANDORA_RESOURCE_DISPLAY BOARD_RESOURCE_DISPLAY
+#define PANDORA_RESOURCE_SENSOR BOARD_RESOURCE_SENSOR
+#define PANDORA_RESOURCE_AUDIO BOARD_RESOURCE_AUDIO
+#define PANDORA_RESOURCE_ACTUATOR BOARD_RESOURCE_ACTUATOR
+#define PANDORA_RESOURCE_USER_IO BOARD_RESOURCE_USER_IO
+#define PANDORA_RESOURCE_EXPANSION BOARD_RESOURCE_EXPANSION
+#define PANDORA_RESOURCE_DEBUG BOARD_RESOURCE_DEBUG
 
-typedef enum {
-  PANDORA_RESOURCE_SCOPE_COMMON,
-  PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
-} pandora_resource_scope_t;
+#define PANDORA_RESOURCE_STATUS_PLANNED BOARD_RESOURCE_STATUS_PLANNED
+#define PANDORA_RESOURCE_STATUS_IOC_MAPPED BOARD_RESOURCE_STATUS_IOC_MAPPED
+#define PANDORA_RESOURCE_STATUS_DRIVER_PENDING BOARD_RESOURCE_STATUS_DRIVER_PENDING
+#define PANDORA_RESOURCE_STATUS_READY BOARD_RESOURCE_STATUS_READY
+#define PANDORA_RESOURCE_STATUS_CONFLICT_NEEDS_REVIEW BOARD_RESOURCE_STATUS_CONFLICT_NEEDS_REVIEW
 
-typedef struct {
-  const char *name;
-  pandora_resource_category_t category;
-  pandora_resource_scope_t scope;
-  pandora_resource_status_t status;
-  const char *bus;
-  const char *pins;
-  const char *protocol;
-  const char *notes;
-} pandora_resource_t;
+#define PANDORA_RESOURCE_SCOPE_COMMON BOARD_RESOURCE_SCOPE_COMMON
+#define PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC BOARD_RESOURCE_SCOPE_BOARD_SPECIFIC
 
-const pandora_resource_t *pandora_board_resources(size_t *count);
-const char *pandora_resource_category_name(pandora_resource_category_t category);
-const char *pandora_resource_status_name(pandora_resource_status_t status);
-const char *pandora_resource_scope_name(pandora_resource_scope_t scope);
+const board_resource_t *pandora_board_resources(size_t *count);
+
+#define pandora_resource_category_name board_resource_category_name
+#define pandora_resource_status_name board_resource_status_name
+#define pandora_resource_scope_name board_resource_scope_name
 
 #ifdef __cplusplus
 }

@@ -106,7 +106,7 @@ bool network_socket_active_link_ready(void) {
 
 const char *network_socket_active_link_name(void) {
   const network_socket_ops_t *ops = network_socket_active_ops();
-  return ops == NULL || ops->name == NULL ? "unknown" : ops->name;
+  return ops == NULL || ops->name == NULL ? "none" : ops->name;
 }
 
 bool network_socket_probe_tcp_port(const char *host, uint16_t port) {

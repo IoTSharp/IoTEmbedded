@@ -1,6 +1,6 @@
 #include "Board/Pandora/Inc/pandora_board_resources.h"
 
-static const pandora_resource_t pandora_resources[] = {
+static const board_resource_t pandora_resources[] = {
   {
     "AP6181 WiFi",
     PANDORA_RESOURCE_NETWORK,
@@ -112,6 +112,16 @@ static const pandora_resource_t pandora_resources[] = {
     "Debug console and command channel.",
   },
   {
+    "RS485 expansion",
+    PANDORA_RESOURCE_EXPANSION,
+    PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
+    PANDORA_RESOURCE_STATUS_IOC_MAPPED,
+    "USART2 + GPIO direction",
+    "PA2 TX, PA3 RX, PA12 RE/DE",
+    "Modbus RTU capable",
+    "Mapped for common RS485 device bring-up; verify external transceiver/header wiring on the Pandora carrier.",
+  },
+  {
     "ATK module interface",
     PANDORA_RESOURCE_EXPANSION,
     PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
@@ -123,62 +133,9 @@ static const pandora_resource_t pandora_resources[] = {
   },
 };
 
-const pandora_resource_t *pandora_board_resources(size_t *count) {
+const board_resource_t *pandora_board_resources(size_t *count) {
   if (count != NULL) {
     *count = sizeof(pandora_resources) / sizeof(pandora_resources[0]);
   }
   return pandora_resources;
-}
-
-const char *pandora_resource_category_name(pandora_resource_category_t category) {
-  switch (category) {
-  case PANDORA_RESOURCE_NETWORK:
-    return "network";
-  case PANDORA_RESOURCE_STORAGE:
-    return "storage";
-  case PANDORA_RESOURCE_DISPLAY:
-    return "display";
-  case PANDORA_RESOURCE_SENSOR:
-    return "sensor";
-  case PANDORA_RESOURCE_AUDIO:
-    return "audio";
-  case PANDORA_RESOURCE_ACTUATOR:
-    return "actuator";
-  case PANDORA_RESOURCE_USER_IO:
-    return "user-io";
-  case PANDORA_RESOURCE_EXPANSION:
-    return "expansion";
-  case PANDORA_RESOURCE_DEBUG:
-    return "debug";
-  default:
-    return "unknown";
-  }
-}
-
-const char *pandora_resource_status_name(pandora_resource_status_t status) {
-  switch (status) {
-  case PANDORA_RESOURCE_STATUS_PLANNED:
-    return "planned";
-  case PANDORA_RESOURCE_STATUS_IOC_MAPPED:
-    return "ioc-mapped";
-  case PANDORA_RESOURCE_STATUS_DRIVER_PENDING:
-    return "driver-pending";
-  case PANDORA_RESOURCE_STATUS_READY:
-    return "ready";
-  case PANDORA_RESOURCE_STATUS_CONFLICT_NEEDS_REVIEW:
-    return "conflict-needs-review";
-  default:
-    return "unknown";
-  }
-}
-
-const char *pandora_resource_scope_name(pandora_resource_scope_t scope) {
-  switch (scope) {
-  case PANDORA_RESOURCE_SCOPE_COMMON:
-    return "common";
-  case PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC:
-    return "board-specific";
-  default:
-    return "unknown";
-  }
 }

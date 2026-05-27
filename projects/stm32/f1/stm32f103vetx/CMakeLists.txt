@@ -35,6 +35,8 @@ target_sources(STM32F103VETX PRIVATE
 	${SRC_ROOT}/Application/Src/app_rtos.c
 	${SRC_ROOT}/Application/Src/modbus_test.c
 	# Board
+	${SRC_ROOT}/Board/PowerEnvDaq/Src/power_env_daq_board_resources.c
+	${SRC_ROOT}/Board/Src/board_resources.c
 	${SRC_ROOT}/Board/Src/bsp_board.c
 	${SRC_ROOT}/Board/Src/bsp_watchdog.c
 	# Bus
