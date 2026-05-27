@@ -50,12 +50,28 @@ src/<Module>[/<SubModule>]/
 - 例外（仅以下两类裸/特殊包含被允许）：
   - 第三方头：`#include "parson.h"`（仅在 `src/ThirdParty/Parson/` 内部）。
   - HAL / FreeRTOS / CMSIS / CubeMX 生成头：
-    `stm32f1xx_hal*.h`, `stm32f1xx_hal_*.h`, `Legacy/stm32f1xx_hal_can_legacy.h`,
-    `FreeRTOS.h`, `task.h`, `queue.h`, `semphr.h`, `cmsis_os2.h`, `main.h` 等。
+    `stm32*xx_hal*.h`, `stm32*xx_hal_*.h`, `Legacy/stm32*_hal*_legacy.h`,
+    `FreeRTOS.h`, `task.h`, `queue.h`, `semphr.h`, `cmsis_os.h`, `cmsis_os2.h`,
+    `main.h` 等。
 
 ## 3. 构建脚本约束（CMake / VisualGDB）
 
-- 工程文件位于 `projects/stm32/f1/<board>/CMakeLists.txt`，由 `*.vgdbcmake` 引用。
+- 新增 STM32 芯片 / 开发板一律按 F103 参考工程的方式接入，除非有明确硬件原因并在
+  对应 README 中说明。
+- 平台目录位于 `src/Platform/stm32/<family>/<board>/`，保持 CubeMX/CubeIDE 生成布局：
+  `.ioc`、`.project`、`.cproject`、`.mxproject`、`.settings/`、`.gpdsc`、linker script、
+  `Core/Inc`、`Core/Src`、`Core/Startup`、`Drivers/`，启用 RTOS 时还包括
+  `Middlewares/Third_Party/FreeRTOS`。禁止把这些生成 / 厂商文件重排到仓库模块
+  `Inc/Src` 结构中。
+- 工程文件位于 `projects/stm32/<family>/<board>/CMakeLists.txt`，由 `*.vgdbcmake` 引用。
+- STM32 平台工程必须使用 CubeMX importer：
+  ```cmake
+  find_bsp(
+    ID com.sysprogs.project_importers.stm32.cubemx
+    SOURCE_PROJECT ${PLATFORM_ROOT}/<PROJECT>.ioc
+    CONFIGURATION "com.sysprogs.toolchainoptions.arm.libctype=--specs=nano.specs -u _printf_float -u _scanf_float")
+  ```
+  然后通过 `add_bsp_based_executable()` 创建可执行目标。
 - **include 路径**只暴露三处：
   1. `${SRC_ROOT}`（即 `src/`）—— 让所有 `<Module>/Inc/<header>.h` 正常解析；
   2. `${SRC_ROOT}/ThirdParty/Parson` —— Parson 自包含；
@@ -71,6 +87,11 @@ src/<Module>[/<SubModule>]/
   `multiple definition` 错误（`main` / `SystemInit` / 所有 `HAL_*` / FreeRTOS
   内核与 IRQ handler 全部命中）。用户 target 只列业务源码（Application、Board、
   Bus、Common、Config、Devices、Interpreter、Modem、Network、Protocol、Storage、ThirdParty/Parson）。
+- 启用 FreeRTOS 的 STM32 平台统一使用 CMSIS-RTOS2：定义 `APP_ENABLE_CMSIS_RTOS=1`，
+  应用源码包含 `Application/Src/app_freertos_hooks.c`，平台内保留
+  `Core/Inc/FreeRTOSConfig.h`、`Core/Src/freertos.c`，BSP 导入
+  `CMSIS_RTOS_V2/cmsis_os2.c`、正确 CPU 对应的 `portable/GCC/<port>` 和 `heap_4.c`。
+  HAL tick 使用硬件定时器（如 TIM2），SysTick 留给 RTOS。
 
 ## 4. 文件操作规范
 

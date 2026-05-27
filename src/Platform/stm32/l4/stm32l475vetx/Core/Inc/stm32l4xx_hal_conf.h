@@ -16,6 +16,7 @@ extern "C" {
 #define HAL_PWR_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
 #define HAL_RTC_MODULE_ENABLED
+#define HAL_TIM_MODULE_ENABLED
 #define HAL_UART_MODULE_ENABLED
 
 #if !defined(HSE_VALUE)
@@ -140,6 +141,10 @@ extern "C" {
 
 #ifdef HAL_RTC_MODULE_ENABLED
 #include "stm32l4xx_hal_rtc.h"
+#endif
+
+#ifdef HAL_TIM_MODULE_ENABLED
+#include "stm32l4xx_hal_tim.h"
 #endif
 
 #ifdef HAL_UART_MODULE_ENABLED

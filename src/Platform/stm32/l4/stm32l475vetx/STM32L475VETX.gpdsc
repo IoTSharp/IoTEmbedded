@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<package xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" schemaVersion="1.4" xs:noNamespaceSchemaLocation="PACK.xsd">
+  <vendor>STMicroelectronics</vendor>
+  <name>STM32L475VETX</name>
+  <description>STM32CubeMX generated pack description</description>
+  <url>./</url>
+  <releases>
+    <release version="1.0.0">
+      - Generated for IoTEmbedded STM32L475VETX platform metadata.
+    </release>
+  </releases>
+  <requirements>
+    <languages>
+      <language name="C" version="99"/>
+      <language name="C++" version="11"/>
+    </languages>
+  </requirements>
+  <create>
+    <project>
+      <options>
+        <stack size="0x400"/>
+        <heap size="0x200"/>
+        <debugProbe name="ST-Link" protocol="swd"/>
+      </options>
+    </project>
+  </create>
+  <generators>
+    <generator id="STM32CubeMX">
+      <description>STM32CubeMX GPDSC</description>
+      <select Dname="STM32L475VETx" Dvendor="STMicroelectronics:13"/>
+      <project_files>
+        <file category="header" name="Core/Inc/main.h"/>
+        <file category="header" name="Core/Inc/FreeRTOSConfig.h"/>
+        <file category="header" name="Core/Inc/stm32l4xx_hal_conf.h"/>
+        <file category="header" name="Core/Inc/stm32l4xx_it.h"/>
+        <file category="sourceC" name="Core/Src/main.c"/>
+        <file category="sourceC" name="Core/Src/freertos.c"/>
+        <file category="sourceC" name="Core/Src/stm32l4xx_hal_msp.c"/>
+        <file category="sourceC" name="Core/Src/stm32l4xx_hal_timebase_tim.c"/>
+        <file category="sourceC" name="Core/Src/stm32l4xx_it.c"/>
+        <file category="sourceC" name="Core/Src/syscalls.c"/>
+        <file category="sourceC" name="Core/Src/sysmem.c"/>
+        <file category="sourceC" name="Core/Src/system_stm32l4xx.c"/>
+        <file category="sourceAsm" name="Core/Startup/startup_stm32l475xx.S"/>
+        <file category="linkerScript" name="STM32L475VETX_FLASH.ld"/>
+      </project_files>
+    </generator>
+  </generators>
+  <taxonomy>
+    <description Cclass="Device" Cgroup="STM32Cube Framework" generator="STM32CubeMX">STM32Cube Framework</description>
+  </taxonomy>
+  <conditions>
+    <condition id="STCubeMX">
+      <description>Condition to include CMSIS core, startup, and STM32Cube HAL components</description>
+      <require Dvendor="STMicroelectronics:13" Dname="STM32L4*"/>
+      <require Cclass="CMSIS" Cgroup="CORE" Csub=""/>
+      <require Cclass="Device" Cgroup="Startup"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="Common"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="CORTEX"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="DMA"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="EXTI"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="Flash"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="GPIO"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="I2C"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="IWDG"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="PWR"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="RCC"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="RTC"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="TIM"/>
+      <require Cclass="Device" Cgroup="STM32Cube HAL" Csub="UART"/>
+    </condition>
+  </conditions>
+  <components>
+    <component generator="STM32CubeMX" Cvendor="Keil" Cclass="Device" Cgroup="STM32Cube Framework" Csub="STM32CubeMX" Cversion="1.0.0" condition="STCubeMX">
+      <description>Configuration via STM32CubeMX</description>
+      <RTE_Components_h>
+        #define RTE_DEVICE_FRAMEWORK_CUBE_MX
+      </RTE_Components_h>
+      <files>
+      </files>
+    </component>
+  </components>
+</package>

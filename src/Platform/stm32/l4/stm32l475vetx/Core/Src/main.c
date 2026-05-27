@@ -1,4 +1,5 @@
 #include "main.h"
+#include "cmsis_os.h"
 
 #include "Application/Inc/app.h"
 
@@ -39,7 +40,6 @@ int main(void) {
 
   while (1) {
     app_loop();
-    HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_8);
   }
 }
 
@@ -234,6 +234,12 @@ static void MX_GPIO_Init(void) {
 void Error_Handler(void) {
   __disable_irq();
   while (1) {
+  }
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+  if (htim->Instance == TIM2) {
+    HAL_IncTick();
   }
 }
 

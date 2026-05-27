@@ -4,6 +4,8 @@ VisualStudioVersion = 18.5.11716.220
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{803FD0C6-D64E-4E16-9DC3-1DAEC859A3D2}") = "STM32F103VETX", "projects\stm32\f1\stm32f103vetx\STM32F103VETX.vgdbcmake", "{3433E1FA-5A9B-4C93-99FF-43A6571E33B7}"
 EndProject
+Project("{803FD0C6-D64E-4E16-9DC3-1DAEC859A3D2}") = "STM32L475VETX", "projects\stm32\l4\stm32l475vetx\STM32L475VETX.vgdbcmake", "{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,22 @@ Global
 		{3433E1FA-5A9B-4C93-99FF-43A6571E33B7}.RelWithDebInfo|Any CPU.Build.0 = RelWithDebInfo|VisualGDB
 		{3433E1FA-5A9B-4C93-99FF-43A6571E33B7}.RelWithDebInfo|VisualGDB.ActiveCfg = RelWithDebInfo|VisualGDB
 		{3433E1FA-5A9B-4C93-99FF-43A6571E33B7}.RelWithDebInfo|VisualGDB.Build.0 = RelWithDebInfo|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.Debug|Any CPU.ActiveCfg = Debug|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.Debug|Any CPU.Build.0 = Debug|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.Debug|VisualGDB.ActiveCfg = Debug|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.Debug|VisualGDB.Build.0 = Debug|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.MinSizeRel|Any CPU.ActiveCfg = MinSizeRel|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.MinSizeRel|Any CPU.Build.0 = MinSizeRel|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.MinSizeRel|VisualGDB.ActiveCfg = MinSizeRel|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.MinSizeRel|VisualGDB.Build.0 = MinSizeRel|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.Release|Any CPU.ActiveCfg = Release|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.Release|Any CPU.Build.0 = Release|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.Release|VisualGDB.ActiveCfg = Release|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.Release|VisualGDB.Build.0 = Release|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.RelWithDebInfo|Any CPU.ActiveCfg = RelWithDebInfo|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.RelWithDebInfo|Any CPU.Build.0 = RelWithDebInfo|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.RelWithDebInfo|VisualGDB.ActiveCfg = RelWithDebInfo|VisualGDB
+		{FFEB1C24-1517-4AB7-AC72-826C6A2B01C2}.RelWithDebInfo|VisualGDB.Build.0 = RelWithDebInfo|VisualGDB
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
