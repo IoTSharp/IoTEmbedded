@@ -12,11 +12,12 @@
 
 static network_monitor_config_t monitor_config;
 static network_state_t current_state = NETWORK_STATE_UNKNOWN;
-static network_link_t active_link = NETWORK_LINK_CH395Q;
+static network_link_t active_link = NETWORK_LINK_NONE;
 static network_mode_t active_mode = NETWORK_MODE_AUTO;
 static uint32_t last_probe_tick;
 static bool force_probe_requested;
 
+static network_link_t network_manager_default_link(void);
 static void network_manager_select_ch395q(void);
 static void network_manager_select_air724ug(void);
 static network_mode_t network_manager_normalize_mode(network_mode_t mode);
@@ -33,7 +34,7 @@ void network_manager_init(const network_monitor_config_t *config, network_mode_t
   }
 
   current_state = NETWORK_STATE_UNKNOWN;
-  active_link = NETWORK_LINK_CH395Q;
+  active_link = network_manager_default_link();
   active_mode = network_manager_normalize_mode(mode);
   last_probe_tick = 0U;
   force_probe_requested = active_mode == NETWORK_MODE_AUTO;
@@ -140,6 +141,12 @@ void network_manager_force_use_air724ug(void) {
 
 static void network_manager_select_ch395q(void) {
   network_socket_close_all();
+#if !BSP_HAS_CH395Q
+  active_link = NETWORK_LINK_NONE;
+  current_state = NETWORK_STATE_UNAVAILABLE;
+  LOG_WARNING("CH395Q unavailable on this board profile");
+  return;
+#endif
   if (!network_prepare_ch395q_probe()) {
     LOG_WARNING("CH395Q prepare failed before switch, forcing CH395Q isolation");
   }
@@ -151,6 +158,12 @@ static void network_manager_select_ch395q(void) {
 
 static void network_manager_select_air724ug(void) {
   network_socket_close_all();
+#if !BSP_HAS_AIR724UG
+  active_link = NETWORK_LINK_NONE;
+  current_state = NETWORK_STATE_UNAVAILABLE;
+  LOG_WARNING("Air724UG unavailable on this board profile");
+  return;
+#endif
   network_switch_to_air724ug();
   bsp_delay_ms(1000U);
   active_link = NETWORK_LINK_AIR724UG;
@@ -165,12 +178,31 @@ static void network_manager_select_air724ug(void) {
 static network_mode_t network_manager_normalize_mode(network_mode_t mode) {
   switch (mode) {
   case NETWORK_MODE_CH395Q:
-  case NETWORK_MODE_AIR724UG:
+#if BSP_HAS_CH395Q
     return mode;
+#else
+    return NETWORK_MODE_AUTO;
+#endif
+  case NETWORK_MODE_AIR724UG:
+#if BSP_HAS_AIR724UG
+    return mode;
+#else
+    return NETWORK_MODE_AUTO;
+#endif
   case NETWORK_MODE_AUTO:
   default:
     return NETWORK_MODE_AUTO;
   }
+}
+
+static network_link_t network_manager_default_link(void) {
+#if BSP_HAS_CH395Q
+  return NETWORK_LINK_CH395Q;
+#elif BSP_HAS_AIR724UG
+  return NETWORK_LINK_AIR724UG;
+#else
+  return NETWORK_LINK_NONE;
+#endif
 }
 
 static uint32_t network_manager_probe_interval(void) {
@@ -184,21 +216,29 @@ __attribute__((weak)) bool network_probe_ch395q_port(const char *host, uint16_t 
 }
 
 __attribute__((weak)) bool network_prepare_ch395q_probe(void) {
+#if BSP_HAS_CH395Q
   bsp_ch395_release_reset();
   return true;
+#else
+  return false;
+#endif
 }
 
 __attribute__((weak)) void network_switch_to_ch395q(void) {
+#if BSP_HAS_CH395Q
   /* 当前硬件没有确认到两个模块的电源 EN，只能用复位脚做总线/链路隔离。
    * 若后续 PCB 增加 load-switch，可在这里替换为真正的电源门控。 */
   bsp_air724_assert_reset();
   bsp_ch395_release_reset();
+#endif
 }
 
 __attribute__((weak)) void network_switch_to_air724ug(void) {
+#if BSP_HAS_AIR724UG
   /* UART4 被 CH395Q/CN2 和 Air724UG 复用时，只允许当前活动模块脱离复位，
    * 避免两个模块同时驱动同一组 TX/RX 线。 */
   bsp_ch395_assert_reset();
   bsp_air724_release_reset();
   (void)bsp_air724_read_netstate();
+#endif
 }

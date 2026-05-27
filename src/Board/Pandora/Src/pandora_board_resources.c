@@ -1,0 +1,184 @@
+#include "Board/Pandora/Inc/pandora_board_resources.h"
+
+static const pandora_resource_t pandora_resources[] = {
+  {
+    "AP6181 WiFi",
+    PANDORA_RESOURCE_NETWORK,
+    PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
+    PANDORA_RESOURCE_STATUS_IOC_MAPPED,
+    "SDMMC1 + GPIO IRQ/EN",
+    "PC8/PC9/PC10/PC11/PC12/PD2, IRQ PC5, EN PD1",
+    "SDIO 4-bit, WICED firmware image in QSPI flash",
+    "Primary onboard network path for Pandora; replaces UART4/UART5 use on these pins.",
+  },
+  {
+    "W25Q128 QSPI flash",
+    PANDORA_RESOURCE_STORAGE,
+    PANDORA_RESOURCE_SCOPE_COMMON,
+    PANDORA_RESOURCE_STATUS_IOC_MAPPED,
+    "QUADSPI",
+    "PE10 CLK, PE11 NCS, PE12 IO0, PE13 IO1, PE14 IO2, PE15 IO3",
+    "QSPI NOR flash",
+    "Stores WiFi image and can host local filesystem/config partitions.",
+  },
+  {
+    "TF card",
+    PANDORA_RESOURCE_STORAGE,
+    PANDORA_RESOURCE_SCOPE_COMMON,
+    PANDORA_RESOURCE_STATUS_IOC_MAPPED,
+    "SPI1",
+    "PA5 SCK, PA6 MISO, PA7 MOSI, PC3 CS",
+    "SPI mode SD card",
+    "Independent from AP6181 SDIO bus; suitable for log/data files after FatFs integration.",
+  },
+  {
+    "1.3 inch TFT LCD",
+    PANDORA_RESOURCE_DISPLAY,
+    PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
+    PANDORA_RESOURCE_STATUS_IOC_MAPPED,
+    "SPI3 + GPIO",
+    "PB3 SCK, PB5 MOSI, PD7 CS, PB4 DC, PB6 RES, PB7 PWR",
+    "4-wire SPI, 240x240 RGB565 controller sequence",
+    "RT-Thread BSP init sequence matches ST7789-like command set; keep panel timing board-specific.",
+  },
+  {
+    "ICM-20608 IMU",
+    PANDORA_RESOURCE_SENSOR,
+    PANDORA_RESOURCE_SCOPE_COMMON,
+    PANDORA_RESOURCE_STATUS_DRIVER_PENDING,
+    "I2C3",
+    "PC0 SCL, PC1 SDA",
+    "MPU6xxx-compatible I2C register protocol",
+    "Reusable sensor driver can live under Devices or a future Sensors module; bus mapping stays here.",
+  },
+  {
+    "AHT10 temperature/humidity",
+    PANDORA_RESOURCE_SENSOR,
+    PANDORA_RESOURCE_SCOPE_COMMON,
+    PANDORA_RESOURCE_STATUS_CONFLICT_NEEDS_REVIEW,
+    "software I2C in RT-Thread BSP",
+    "PD6 SCL, PC1 SDA",
+    "AHT10 I2C command protocol",
+    "RT-Thread BSP models this as i2c4 sharing SDA with I2C3; verify schematic before enabling in IOC/code.",
+  },
+  {
+    "ES8388 audio codec",
+    PANDORA_RESOURCE_AUDIO,
+    PANDORA_RESOURCE_SCOPE_COMMON,
+    PANDORA_RESOURCE_STATUS_CONFLICT_NEEDS_REVIEW,
+    "SAI1 + I2C3 + GPIO TBD",
+    "PE2 MCLK, PE4 FS, PE5 SCK, PE6 SD_A, PE3 SD_B, PC0/PC1 control; PA_EN TBD",
+    "I2S over SAI, I2C control address 0x10",
+    "SAI/I2C are mapped; verify the amplifier-enable route before enabling audio.",
+  },
+  {
+    "TC214B motor",
+    PANDORA_RESOURCE_ACTUATOR,
+    PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
+    PANDORA_RESOURCE_STATUS_IOC_MAPPED,
+    "PWM",
+    "PE9 TIM1_CH1",
+    "PWM drive",
+    "Board-specific actuator; keep driver separate from generic sensor/device protocols.",
+  },
+  {
+    "RGB LED",
+    PANDORA_RESOURCE_USER_IO,
+    PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
+    PANDORA_RESOURCE_STATUS_IOC_MAPPED,
+    "GPIO/PWM candidate",
+    "PB10 TIM2_CH3, PB11 TIM2_CH4, PB8 TIM4_CH3",
+    "GPIO or PWM",
+    "Current minimal firmware used PE7/PE8/PE9; official Pandora BSP uses timer-capable pins.",
+  },
+  {
+    "Keys",
+    PANDORA_RESOURCE_USER_IO,
+    PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
+    PANDORA_RESOURCE_STATUS_DRIVER_PENDING,
+    "GPIO",
+    "PD10 KEY0, PD9 KEY1, PD8 KEY2, PC13 WK_UP",
+    "active-low keys, WK_UP active-high",
+    "Needs GPIO input configuration and debounce before app use.",
+  },
+  {
+    "ST-LINK VCP console",
+    PANDORA_RESOURCE_DEBUG,
+    PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
+    PANDORA_RESOURCE_STATUS_IOC_MAPPED,
+    "USART1",
+    "PA9 TX, PA10 RX",
+    "115200 8N1",
+    "Debug console and command channel.",
+  },
+  {
+    "ATK module interface",
+    PANDORA_RESOURCE_EXPANSION,
+    PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC,
+    PANDORA_RESOURCE_STATUS_PLANNED,
+    "TBD",
+    "TBD from schematic/header definition",
+    "module-dependent",
+    "Reserve a board-specific expansion descriptor before binding concrete devices.",
+  },
+};
+
+const pandora_resource_t *pandora_board_resources(size_t *count) {
+  if (count != NULL) {
+    *count = sizeof(pandora_resources) / sizeof(pandora_resources[0]);
+  }
+  return pandora_resources;
+}
+
+const char *pandora_resource_category_name(pandora_resource_category_t category) {
+  switch (category) {
+  case PANDORA_RESOURCE_NETWORK:
+    return "network";
+  case PANDORA_RESOURCE_STORAGE:
+    return "storage";
+  case PANDORA_RESOURCE_DISPLAY:
+    return "display";
+  case PANDORA_RESOURCE_SENSOR:
+    return "sensor";
+  case PANDORA_RESOURCE_AUDIO:
+    return "audio";
+  case PANDORA_RESOURCE_ACTUATOR:
+    return "actuator";
+  case PANDORA_RESOURCE_USER_IO:
+    return "user-io";
+  case PANDORA_RESOURCE_EXPANSION:
+    return "expansion";
+  case PANDORA_RESOURCE_DEBUG:
+    return "debug";
+  default:
+    return "unknown";
+  }
+}
+
+const char *pandora_resource_status_name(pandora_resource_status_t status) {
+  switch (status) {
+  case PANDORA_RESOURCE_STATUS_PLANNED:
+    return "planned";
+  case PANDORA_RESOURCE_STATUS_IOC_MAPPED:
+    return "ioc-mapped";
+  case PANDORA_RESOURCE_STATUS_DRIVER_PENDING:
+    return "driver-pending";
+  case PANDORA_RESOURCE_STATUS_READY:
+    return "ready";
+  case PANDORA_RESOURCE_STATUS_CONFLICT_NEEDS_REVIEW:
+    return "conflict-needs-review";
+  default:
+    return "unknown";
+  }
+}
+
+const char *pandora_resource_scope_name(pandora_resource_scope_t scope) {
+  switch (scope) {
+  case PANDORA_RESOURCE_SCOPE_COMMON:
+    return "common";
+  case PANDORA_RESOURCE_SCOPE_BOARD_SPECIFIC:
+    return "board-specific";
+  default:
+    return "unknown";
+  }
+}

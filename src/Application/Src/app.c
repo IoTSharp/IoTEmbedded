@@ -51,6 +51,7 @@ void app_init(void) {
   LOG_INFO("Network probe target: %s:%u every %lu ms", active_config.network_monitor.probe_host,
            active_config.network_monitor.probe_port, active_config.network_monitor.probe_interval_ms);
   LOG_INFO("Network mode: %s", config_network_mode_name(network_mode));
+#if BSP_HAS_CH395Q || BSP_HAS_AIR724UG
   if (network_mode == NETWORK_MODE_AIR724UG) {
     LOG_INFO("Network primary: Air724UG 4G on UART4");
   } else if (network_mode == NETWORK_MODE_CH395Q) {
@@ -70,6 +71,9 @@ void app_init(void) {
     /* 固定 4G 模式下不做 CH395Q 初始化，避免把启动时间浪费在未使用的链路上。 */
     LOG_INFO("CH395Q init skipped by network_mode=4g");
   }
+#else
+  LOG_WARNING("Board network socket adapter not enabled yet; Pandora AP6181 SDIO WiFi is mapped in IOC only");
+#endif
 
   network_manager_init(&active_config.network_monitor, network_mode);
   network_manager_poll();
@@ -118,6 +122,7 @@ void app_loop(void) {
 }
 
 bool network_prepare_ch395q_probe(void) {
+#if BSP_HAS_CH395Q
   if (!bsp_ch395_is_reset_asserted() && ch395_cmd_check_exist(CH395_CHECK_TEST_DATA) == CH395_CHECK_EXPECTED) {
     return true;
   }
@@ -126,6 +131,9 @@ bool network_prepare_ch395q_probe(void) {
    * 这里保持单次初始化，避免每个探测周期把主业务拖成长阻塞。 */
   LOG_INFO("CH395Q prepare probe: release reset and init network params");
   return ch395_board_init_network(active_config.mqtt.local_ip, active_config.mqtt.gateway_ip, active_config.mqtt.mask_ip);
+#else
+  return false;
+#endif
 }
 
 static void app_log_reset_cause(void) {

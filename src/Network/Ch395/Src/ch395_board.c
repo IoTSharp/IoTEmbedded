@@ -13,15 +13,24 @@ static ch395_board_status_t board_status = {0};
 static const uint8_t default_mac_addr[6] = {0x02U, 0x50U, 0x45U, 0x4DU, 0x00U, 0x01U};
 
 void ch395_board_init_default(void) {
+#if BSP_HAS_CH395Q
   ch395_driver_init();
   board_status.check_result = ch395_cmd_check_exist(CH395_CHECK_TEST_DATA);
   board_status.present = board_status.check_result == CH395_CHECK_EXPECTED;
   board_status.version = board_status.present ? ch395_cmd_get_ver() : 0U;
   board_status.phy_status = board_status.present ? ch395_cmd_get_phy_status() : 0U;
   board_status.init_status = CH395_ERR_UNKNOW;
+#else
+  board_status.present = false;
+  board_status.check_result = 0U;
+  board_status.version = 0U;
+  board_status.phy_status = 0U;
+  board_status.init_status = CH395_ERR_UNKNOW;
+#endif
 }
 
 bool ch395_board_init_network(const char *local_ip, const char *gateway_ip, const char *mask_ip) {
+#if BSP_HAS_CH395Q
   uint8_t local[4] = {0};
   uint8_t gateway[4] = {0};
   uint8_t mask[4] = {0};
@@ -56,6 +65,13 @@ bool ch395_board_init_network(const char *local_ip, const char *gateway_ip, cons
   board_status.present = true;
 
   return board_status.init_status == CH395_CMD_ERR_SUCCESS;
+#else
+  (void)local_ip;
+  (void)gateway_ip;
+  (void)mask_ip;
+  ch395_board_init_default();
+  return false;
+#endif
 }
 
 ch395_board_status_t ch395_board_get_status(void) {
@@ -72,8 +88,12 @@ ch395_board_status_t ch395_board_get_status(void) {
 }
 
 void ch395_board_log_status(void) {
+#if BSP_HAS_CH395Q
   ch395_board_status_t status = ch395_board_get_status();
   LOG_INFO("CH395Q check=0x%02X expected=0x%02X present=%u version=0x%02X phy=0x%02X init=0x%02X",
            status.check_result, CH395_CHECK_EXPECTED, status.present ? 1U : 0U, status.version, status.phy_status,
            status.init_status);
+#else
+  LOG_INFO("CH395Q unavailable on this board profile");
+#endif
 }

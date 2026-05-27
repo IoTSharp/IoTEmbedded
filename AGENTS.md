@@ -21,7 +21,7 @@ src/<Module>[/<SubModule>]/
 | 模块 | 说明 |
 | --- | --- |
 | `Application/` | 业务入口、应用层 RTOS 任务、测试入口 |
-| `Board/` | 板级初始化、看门狗等板级抽象 |
+| `Board/` | 板级初始化、看门狗等板级抽象；`Board/Pandora/` 为潘多拉板载资源清单与板级特定映射 |
 | `Bus/Uart/`, `Bus/Rs485/` | 总线驱动（按物理总线再分子模块） |
 | `Common/` | 公共工具（log、md5、util、通用类型） |
 | `Config/` | 配置 / 网络配置 |

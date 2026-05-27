@@ -9,12 +9,14 @@ extern "C" {
 #endif
 
 typedef enum {
-  NETWORK_LINK_CH395Q = 0,
+  NETWORK_LINK_NONE = 0,
+  NETWORK_LINK_CH395Q,
   NETWORK_LINK_AIR724UG,
 } network_link_t;
 
 typedef enum {
   NETWORK_STATE_UNKNOWN = 0,
+  NETWORK_STATE_UNAVAILABLE,
   NETWORK_STATE_CH395Q_ACTIVE,
   NETWORK_STATE_AIR724UG_ACTIVE,
 } network_state_t;

@@ -1,5 +1,6 @@
 #include "Network/Inc/network_socket.h"
 
+#include "Board/Inc/bsp_board.h"
 #include "Common/Inc/log.h"
 #include <stddef.h>
 
@@ -125,9 +126,18 @@ bool network_socket_probe_tcp_port(const char *host, uint16_t port) {
 static const network_socket_ops_t *network_socket_ops_for_link(network_link_t link) {
   switch (link) {
   case NETWORK_LINK_CH395Q:
+#if BSP_HAS_CH395Q
     return &network_socket_ch395_ops;
+#else
+    return NULL;
+#endif
   case NETWORK_LINK_AIR724UG:
+#if BSP_HAS_AIR724UG
     return &network_socket_air724_ops;
+#else
+    return NULL;
+#endif
+  case NETWORK_LINK_NONE:
   default:
     return NULL;
   }

@@ -60,7 +60,11 @@ const network_socket_ops_t network_socket_air724_ops = {
 };
 
 static bool network_socket_air724_is_ready(void) {
+#if BSP_HAS_AIR724UG
   return !bsp_air724_is_reset_asserted() && bsp_air724_read_netstate() == GPIO_PIN_SET;
+#else
+  return false;
+#endif
 }
 
 static bool network_socket_air724_open(const network_socket_config_t *config) {

@@ -2144,6 +2144,8 @@ static void config_handle_device_rs485_cmd(char *args) {
 
 static const char *config_network_link_str(network_link_t link) {
   switch (link) {
+  case NETWORK_LINK_NONE:
+    return "none";
   case NETWORK_LINK_CH395Q:
     return "CH395Q/UART4/CN2";
   case NETWORK_LINK_AIR724UG:
@@ -2157,6 +2159,8 @@ static const char *config_network_state_str(network_state_t state) {
   switch (state) {
   case NETWORK_STATE_UNKNOWN:
     return "unknown";
+  case NETWORK_STATE_UNAVAILABLE:
+    return "unavailable";
   case NETWORK_STATE_CH395Q_ACTIVE:
     return "ch395q_active";
   case NETWORK_STATE_AIR724UG_ACTIVE:

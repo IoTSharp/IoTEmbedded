@@ -68,10 +68,14 @@ static int basic_serial_push_sized_string(struct mb_interpreter_t *s, void **l, 
 static int_t basic_serial_size_to_int(size_t value);
 
 static const basic_serial_port_t basic_serial_port_descriptors[] = {
-  {BASIC_SERIAL_INTERFACE_RS485, BSP_UART1_HANDLE, 1U},
+  {BASIC_SERIAL_INTERFACE_RS485, BSP_RS485_UART_HANDLE, 1U},
   {BASIC_SERIAL_INTERFACE_SERIAL, BSP_UART2_HANDLE, 2U},
+#if BSP_HAS_UART4
   {BASIC_SERIAL_INTERFACE_SERIAL, BSP_UART4_HANDLE, 4U},
+#endif
+#if BSP_HAS_RS232
   {BASIC_SERIAL_INTERFACE_RS232, BSP_UART5_HANDLE, 5U},
+#endif
 };
 
 ErrorStatus basic_serial_register(struct mb_interpreter_t *interpreter) {

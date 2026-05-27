@@ -4,35 +4,63 @@
 #include <string.h>
 
 void bsp_air724_assert_reset(void) {
+#if BSP_HAS_AIR724UG
   // Air724UG 的 RST 低电平有效；保持低电平可让模块退出 UART4 总线竞争，但不等同于切断 VBAT/VCC。
   HAL_GPIO_WritePin(BSP_AIR4G_RST_GPIO_Port, BSP_AIR4G_RST_Pin, GPIO_PIN_RESET);
+#endif
 }
 
 void bsp_air724_release_reset(void) {
+#if BSP_HAS_AIR724UG
   HAL_GPIO_WritePin(BSP_AIR4G_RST_GPIO_Port, BSP_AIR4G_RST_Pin, GPIO_PIN_SET);
+#endif
 }
 
 bool bsp_air724_is_reset_asserted(void) {
+#if BSP_HAS_AIR724UG
   return HAL_GPIO_ReadPin(BSP_AIR4G_RST_GPIO_Port, BSP_AIR4G_RST_Pin) == GPIO_PIN_RESET;
+#else
+  return true;
+#endif
 }
 
 void bsp_air724_reset(void) {
+#if BSP_HAS_AIR724UG
   bsp_air724_assert_reset();
   bsp_delay_ms(200U);
   bsp_air724_release_reset();
   bsp_delay_ms(1000U);
+#endif
 }
 
 GPIO_PinState bsp_air724_read_netstate(void) {
+#if BSP_HAS_AIR724UG
   return HAL_GPIO_ReadPin(BSP_AIR4G_NETSTATE_GPIO_Port, BSP_AIR4G_NETSTATE_Pin);
+#else
+  return GPIO_PIN_RESET;
+#endif
 }
 
 HAL_StatusTypeDef bsp_air724_uart_write(const uint8_t *data, uint16_t length, uint32_t timeout_ms) {
+#if BSP_HAS_AIR724UG
   return bsp_uart_write(BSP_UART4_HANDLE, data, length, timeout_ms);
+#else
+  (void)data;
+  (void)length;
+  (void)timeout_ms;
+  return HAL_ERROR;
+#endif
 }
 
 HAL_StatusTypeDef bsp_air724_uart_read(uint8_t *data, uint16_t length, uint32_t timeout_ms) {
+#if BSP_HAS_AIR724UG
   return bsp_uart_read(BSP_UART4_HANDLE, data, length, timeout_ms);
+#else
+  (void)data;
+  (void)length;
+  (void)timeout_ms;
+  return HAL_ERROR;
+#endif
 }
 
 HAL_StatusTypeDef bsp_air724_at_command(const char *command, char *response, uint16_t response_size, uint32_t timeout_ms) {

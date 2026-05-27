@@ -21,6 +21,7 @@ static uint8_t ch395_uart_set_baudrate(uint32_t baudrate);
 static HAL_StatusTypeDef ch395_uart_configure(uint32_t baudrate);
 
 void ch395_driver_init(void) {
+#if BSP_HAS_CH395Q
   /* 当前硬件只保留 UART4/CN2 访问 CH395Q。初始化时先压住 Air724UG，
    * 避免它在共享 UART4 上输出 URC 干扰 CH395Q 帧。 */
   bsp_air724_assert_reset();
@@ -28,34 +29,50 @@ void ch395_driver_init(void) {
   if (!ch395_uart_sync_to_work_baudrate()) {
     (void)ch395_uart_configure(CH395_UART_WORK_BAUDRATE);
   }
+#endif
 }
 
 void ch395_cmd_reset(void) {
+#if BSP_HAS_CH395Q
   ch395_write_cmd(CH395_CMD_RESET_ALL);
   // CH395Q 软件复位后 UART 速率可能回到默认 9600，必须重新同步后再继续发网络配置。
   (void)bsp_watchdog_refresh();
   bsp_delay_ms(200U);
   (void)bsp_watchdog_refresh();
   (void)ch395_uart_sync_to_work_baudrate();
+#endif
 }
 
 void ch395_write_cmd(uint8_t command) {
+#if BSP_HAS_CH395Q
   const uint8_t header[] = {CH395_UART_SYNC1, CH395_UART_SYNC2, command};
   bsp_uart_flush_rx(BSP_UART4_HANDLE);
   (void)bsp_uart_write(BSP_UART4_HANDLE, header, (uint16_t)sizeof(header), CH395_UART_TIMEOUT_MS);
   // WCH UART/SPI 示例都要求命令字后保留短暂间隔，再继续写参数或读返回值。
   bsp_delay_us(2U);
+#else
+  (void)command;
+#endif
 }
 
 HAL_StatusTypeDef ch395_write_data(uint8_t data) {
+#if BSP_HAS_CH395Q
   return bsp_uart_write(BSP_UART4_HANDLE, &data, 1U, CH395_UART_TIMEOUT_MS);
+#else
+  (void)data;
+  return HAL_ERROR;
+#endif
 }
 
 HAL_StatusTypeDef ch395_read_data(uint8_t *data) {
   if (data == NULL) {
     return HAL_ERROR;
   }
+#if BSP_HAS_CH395Q
   return bsp_uart_read(BSP_UART4_HANDLE, data, 1U, CH395_UART_TIMEOUT_MS);
+#else
+  return HAL_ERROR;
+#endif
 }
 
 uint8_t ch395_cmd_get_ver(void) {
@@ -251,12 +268,17 @@ uint16_t ch395_read_recv_buf(uint8_t socket_index, uint8_t *data, uint16_t lengt
     return 0U;
   }
 
+#if BSP_HAS_CH395Q
   ch395_write_cmd(CH395_CMD_READ_RECV_BUF_SN);
   (void)ch395_write_data(socket_index);
   (void)ch395_write_data((uint8_t)length);
   (void)ch395_write_data((uint8_t)(length >> 8));
 
   return bsp_uart_read(BSP_UART4_HANDLE, data, length, CH395_UART_TIMEOUT_MS) == HAL_OK ? length : 0U;
+#else
+  (void)socket_index;
+  return 0U;
+#endif
 }
 
 void ch395_clear_recv_buf(uint8_t socket_index) {
@@ -268,9 +290,13 @@ static uint8_t ch395_write_data_bytes(const uint8_t *data, uint16_t length) {
   if (data == NULL || length == 0U) {
     return CH395_ERR_UNKNOW;
   }
+#if BSP_HAS_CH395Q
   return bsp_uart_write(BSP_UART4_HANDLE, data, length, CH395_UART_TIMEOUT_MS) == HAL_OK
            ? CH395_CMD_ERR_SUCCESS
            : CH395_ERR_UNKNOW;
+#else
+  return CH395_ERR_UNKNOW;
+#endif
 }
 
 static uint8_t ch395_command_with_ip(uint8_t command, const uint8_t ip[4]) {
@@ -330,5 +356,10 @@ static uint8_t ch395_uart_set_baudrate(uint32_t baudrate) {
 }
 
 static HAL_StatusTypeDef ch395_uart_configure(uint32_t baudrate) {
+#if BSP_HAS_CH395Q
   return bsp_uart_configure_8n1(BSP_UART4_HANDLE, baudrate);
+#else
+  (void)baudrate;
+  return HAL_ERROR;
+#endif
 }
