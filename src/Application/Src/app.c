@@ -18,6 +18,9 @@
 #include "Protocol/Mqtt/Inc/mqtt_client.h"
 #include "Network/Inc/network_manager.h"
 #include "Protocol/Platform/Inc/platform_messages.h"
+#if BSP_HAS_DISPLAY
+#include "Display/Inc/display_api.h"
+#endif
 
 #include <stdio.h>
 
@@ -30,8 +33,16 @@
 #endif
 
 static void app_log_reset_cause(void);
+#if BSP_HAS_DISPLAY
+static void app_show_boot_screen(network_mode_t network_mode);
+static void app_display_write_line(uint16_t row, const char *label, const char *value);
+#endif
 
 void app_init(void) {
+#if BSP_HAS_DISPLAY
+  bool display_ready = false;
+#endif
+
   bsp_board_init();
   (void)bsp_watchdog_refresh();
   config_init();
@@ -39,12 +50,20 @@ void app_init(void) {
 #if BSP_HAS_DISPLAY
   if (bsp_board_display_init() != SUCCESS) {
     LOG_WARNING("Board display binding init failed");
+  } else {
+    display_ready = true;
   }
 #endif
   app_basic_init();
 
   network_mode_t network_mode = config_get_network_mode();
   const char *ch395_link_name = "CH395Q on UART4/CN2";
+
+#if BSP_HAS_DISPLAY
+  if (display_ready) {
+    app_show_boot_screen(network_mode);
+  }
+#endif
 
   LOG_INFO("%s boot", BSP_BOARD_NAME);
   LOG_INFO("Firmware version: %s", CONFIG_VERSION);
@@ -160,3 +179,41 @@ static void app_log_reset_cause(void) {
            software ? 1U : 0U, iwdg ? 1U : 0U, wwdg ? 1U : 0U, low_power ? 1U : 0U);
   __HAL_RCC_CLEAR_RESET_FLAGS();
 }
+
+#if BSP_HAS_DISPLAY
+static void app_show_boot_screen(network_mode_t network_mode) {
+  const display_color_pair_t title_colors = {0xFFE0U, 0x0000U};
+  const display_color_pair_t body_colors = {0xFFFFU, 0x0000U};
+  char mqtt_target[40] = {0};
+  char sysclk[24] = {0};
+
+  (void)snprintf(mqtt_target, sizeof(mqtt_target), "%s:%u", active_config.mqtt.ip, active_config.mqtt.port);
+  (void)snprintf(sysclk, sizeof(sysclk), "%luHZ", HAL_RCC_GetSysClockFreq());
+
+  (void)display_api_cls(0x0000U);
+  (void)display_api_color(title_colors);
+  (void)display_api_locate((display_text_cursor_t){1U, 1U});
+  (void)display_api_write_text("IOTEMBEDDED BOOT\n");
+
+  (void)display_api_color(body_colors);
+  app_display_write_line(3U, "BOARD", BSP_BOARD_NAME);
+  app_display_write_line(4U, "FW", CONFIG_VERSION);
+  app_display_write_line(5U, "MCU", BSP_MCU_NAME);
+  app_display_write_line(6U, "SYSCLK", sysclk);
+  app_display_write_line(7U, "NET", config_network_mode_name(network_mode));
+  app_display_write_line(8U, "MQTT", mqtt_target);
+  app_display_write_line(10U, "STATUS", "STARTING SERVICES");
+}
+
+static void app_display_write_line(uint16_t row, const char *label, const char *value) {
+  char line[41] = {0};
+
+  if (label == NULL || value == NULL) {
+    return;
+  }
+
+  (void)snprintf(line, sizeof(line), "%-7s %s", label, value);
+  (void)display_api_locate((display_text_cursor_t){row, 1U});
+  (void)display_api_write_text(line);
+}
+#endif

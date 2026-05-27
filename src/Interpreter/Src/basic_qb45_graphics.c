@@ -1,5 +1,6 @@
 #include "Interpreter/Inc/basic_qb45_graphics.h"
 
+#include "Interpreter/Inc/app_basic.h"
 #include "Application/Inc/app_rtos.h"
 #include "Board/Inc/bsp_watchdog.h"
 #include "Common/Inc/log.h"
@@ -13,6 +14,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#define BASIC_QB45_SCREEN_TEXT    0
 #define BASIC_QB45_SCREEN_DEFAULT 12
 #define BASIC_QB45_TEXT_ROW_MAX   30U
 #define BASIC_QB45_TEXT_COL_MAX   40U
@@ -76,6 +78,7 @@ static void basic_qb45_release_value(struct mb_interpreter_t *s, mb_value_t valu
 static void basic_qb45_release_values(struct mb_interpreter_t *s, mb_value_t *values, size_t count);
 static int basic_qb45_push_status(struct mb_interpreter_t *s, void **l, ErrorStatus status);
 static int basic_qb45_fail(struct mb_interpreter_t *s, void **l);
+static void basic_qb45_advance_cursor_for_text(const char *text);
 static void basic_qb45_feed_heartbeat(void);
 static uint16_t basic_qb45_color_from_attribute(uint16_t attribute);
 static void basic_qb45_reset_state(void);
@@ -115,6 +118,17 @@ ErrorStatus basic_qb45_graphics_register(struct mb_interpreter_t *interpreter) {
   return SUCCESS;
 }
 
+ErrorStatus basic_qb45_graphics_write_text(const char *text) {
+  if (text == NULL) {
+    return ERROR;
+  }
+  if (display_api_write_text(text) != SUCCESS) {
+    return ERROR;
+  }
+  basic_qb45_advance_cursor_for_text(text);
+  return SUCCESS;
+}
+
 static int basic_qb45_screen(struct mb_interpreter_t *s, void **l) {
   basic_qb45_feed_heartbeat();
   int_t mode = BASIC_QB45_SCREEN_DEFAULT;
@@ -143,7 +157,16 @@ static int basic_qb45_screen(struct mb_interpreter_t *s, void **l) {
   mb_check(mb_attempt_close_bracket(s, l));
 
   basic_qb45_reset_state();
-  return basic_qb45_push_status(s, l, display_api_screen((int)mode));
+  if (mode == BASIC_QB45_SCREEN_TEXT) {
+    app_basic_set_print_target(APP_BASIC_PRINT_TARGET_DEFAULT);
+    return mb_push_int(s, l, 1);
+  }
+
+  ErrorStatus status = display_api_screen((int)mode);
+  if (status == SUCCESS) {
+    app_basic_set_print_target(APP_BASIC_PRINT_TARGET_DISPLAY);
+  }
+  return basic_qb45_push_status(s, l, status);
 }
 
 static int basic_qb45_cls(struct mb_interpreter_t *s, void **l) {
@@ -162,7 +185,12 @@ static int basic_qb45_cls(struct mb_interpreter_t *s, void **l) {
   mb_check(mb_attempt_close_bracket(s, l));
 
   basic_qb45_state.has_last_point = false;
-  return basic_qb45_push_status(s, l, display_api_cls(color));
+  if (display_api_cls(color) != SUCCESS || display_api_locate((display_text_cursor_t){1U, 1U}) != SUCCESS) {
+    return basic_qb45_fail(s, l);
+  }
+  basic_qb45_state.cursor_row = 1U;
+  basic_qb45_state.cursor_col = 1U;
+  return mb_push_int(s, l, 1);
 }
 
 static int basic_qb45_color(struct mb_interpreter_t *s, void **l) {
@@ -787,6 +815,40 @@ static int basic_qb45_push_status(struct mb_interpreter_t *s, void **l, ErrorSta
 
 static int basic_qb45_fail(struct mb_interpreter_t *s, void **l) {
   return mb_push_int(s, l, 0);
+}
+
+static void basic_qb45_advance_cursor_for_text(const char *text) {
+  if (text == NULL) {
+    return;
+  }
+
+  while (*text != '\0') {
+    char ch = *text++;
+    if (ch == '\r') {
+      continue;
+    }
+    if (ch == '\n') {
+      basic_qb45_state.cursor_row++;
+      basic_qb45_state.cursor_col = 1U;
+    } else if (ch == '\t') {
+      do {
+        basic_qb45_state.cursor_col++;
+      } while (basic_qb45_state.cursor_col <= BASIC_QB45_TEXT_COL_MAX &&
+               ((basic_qb45_state.cursor_col - 1U) % 4U) != 0U);
+    } else {
+      if (basic_qb45_state.cursor_col > BASIC_QB45_TEXT_COL_MAX) {
+        basic_qb45_state.cursor_row++;
+        basic_qb45_state.cursor_col = 1U;
+      }
+      basic_qb45_state.cursor_col++;
+    }
+
+    if (basic_qb45_state.cursor_row > BASIC_QB45_TEXT_ROW_MAX) {
+      basic_qb45_state.cursor_row = BASIC_QB45_TEXT_ROW_MAX;
+      basic_qb45_state.cursor_col = BASIC_QB45_TEXT_COL_MAX + 1U;
+      break;
+    }
+  }
 }
 
 static void basic_qb45_feed_heartbeat(void) {

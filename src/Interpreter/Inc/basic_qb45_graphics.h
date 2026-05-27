@@ -20,6 +20,7 @@ struct mb_interpreter_t;
 #define BASIC_QB45_FUNC_PAINT  "PAINT"
 
 ErrorStatus basic_qb45_graphics_register(struct mb_interpreter_t *interpreter);
+ErrorStatus basic_qb45_graphics_write_text(const char *text);
 
 #ifdef __cplusplus
 }

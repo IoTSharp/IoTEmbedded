@@ -7,6 +7,12 @@
 #define ST7789_WRITE_CHUNK_BYTES 64U
 #define ST7789_TEXT_COLUMNS      40U
 #define ST7789_TEXT_ROWS         30U
+#define ST7789_TEXT_CELL_WIDTH   6U
+#define ST7789_TEXT_CELL_HEIGHT  8U
+#define ST7789_FONT_WIDTH        5U
+#define ST7789_FONT_HEIGHT       7U
+#define ST7789_FONT_FIRST_CHAR   0x20U
+#define ST7789_FONT_LAST_CHAR    0x7EU
 #define ST7789_QB45_SCREEN_MODE  12
 
 #define ST7789_CMD_SWRESET 0x01U
@@ -58,6 +64,10 @@ static ErrorStatus display_st7789_fill_rect(display_st7789_context_t *driver, in
                                             int16_t width, int16_t height, uint16_t color);
 static ErrorStatus display_st7789_write_color_run(display_st7789_context_t *driver, uint16_t color,
                                                   uint32_t pixel_count);
+static ErrorStatus display_st7789_draw_text_cell(display_st7789_context_t *driver, uint16_t column, uint16_t row,
+                                                 char ch);
+static const uint8_t *display_st7789_glyph(char ch);
+static char display_st7789_normalize_char(char ch);
 static bool display_st7789_can_use(display_st7789_context_t *driver);
 static bool display_st7789_point_in_bounds(const display_st7789_context_t *driver, display_point_t point);
 static uint16_t display_st7789_width(const display_st7789_context_t *driver);
@@ -78,6 +88,57 @@ static ErrorStatus display_st7789_fill_circle_spans(display_st7789_context_t *dr
 static int16_t display_st7789_min_i16(int16_t a, int16_t b);
 static int16_t display_st7789_abs_i16(int16_t value);
 
+static const uint8_t display_st7789_font5x7[ST7789_FONT_LAST_CHAR - ST7789_FONT_FIRST_CHAR + 1U][ST7789_FONT_WIDTH] = {
+  {0x00U, 0x00U, 0x00U, 0x00U, 0x00U}, {0x00U, 0x00U, 0x5FU, 0x00U, 0x00U},
+  {0x00U, 0x07U, 0x00U, 0x07U, 0x00U}, {0x14U, 0x7FU, 0x14U, 0x7FU, 0x14U},
+  {0x24U, 0x2AU, 0x7FU, 0x2AU, 0x12U}, {0x23U, 0x13U, 0x08U, 0x64U, 0x62U},
+  {0x36U, 0x49U, 0x55U, 0x22U, 0x50U}, {0x00U, 0x05U, 0x03U, 0x00U, 0x00U},
+  {0x00U, 0x1CU, 0x22U, 0x41U, 0x00U}, {0x00U, 0x41U, 0x22U, 0x1CU, 0x00U},
+  {0x14U, 0x08U, 0x3EU, 0x08U, 0x14U}, {0x08U, 0x08U, 0x3EU, 0x08U, 0x08U},
+  {0x00U, 0x50U, 0x30U, 0x00U, 0x00U}, {0x08U, 0x08U, 0x08U, 0x08U, 0x08U},
+  {0x00U, 0x60U, 0x60U, 0x00U, 0x00U}, {0x20U, 0x10U, 0x08U, 0x04U, 0x02U},
+  {0x3EU, 0x51U, 0x49U, 0x45U, 0x3EU}, {0x00U, 0x42U, 0x7FU, 0x40U, 0x00U},
+  {0x42U, 0x61U, 0x51U, 0x49U, 0x46U}, {0x21U, 0x41U, 0x45U, 0x4BU, 0x31U},
+  {0x18U, 0x14U, 0x12U, 0x7FU, 0x10U}, {0x27U, 0x45U, 0x45U, 0x45U, 0x39U},
+  {0x3CU, 0x4AU, 0x49U, 0x49U, 0x30U}, {0x01U, 0x71U, 0x09U, 0x05U, 0x03U},
+  {0x36U, 0x49U, 0x49U, 0x49U, 0x36U}, {0x06U, 0x49U, 0x49U, 0x29U, 0x1EU},
+  {0x00U, 0x36U, 0x36U, 0x00U, 0x00U}, {0x00U, 0x56U, 0x36U, 0x00U, 0x00U},
+  {0x08U, 0x14U, 0x22U, 0x41U, 0x00U}, {0x14U, 0x14U, 0x14U, 0x14U, 0x14U},
+  {0x00U, 0x41U, 0x22U, 0x14U, 0x08U}, {0x02U, 0x01U, 0x51U, 0x09U, 0x06U},
+  {0x32U, 0x49U, 0x79U, 0x41U, 0x3EU}, {0x7EU, 0x11U, 0x11U, 0x11U, 0x7EU},
+  {0x7FU, 0x49U, 0x49U, 0x49U, 0x36U}, {0x3EU, 0x41U, 0x41U, 0x41U, 0x22U},
+  {0x7FU, 0x41U, 0x41U, 0x22U, 0x1CU}, {0x7FU, 0x49U, 0x49U, 0x49U, 0x41U},
+  {0x7FU, 0x09U, 0x09U, 0x09U, 0x01U}, {0x3EU, 0x41U, 0x49U, 0x49U, 0x7AU},
+  {0x7FU, 0x08U, 0x08U, 0x08U, 0x7FU}, {0x00U, 0x41U, 0x7FU, 0x41U, 0x00U},
+  {0x20U, 0x40U, 0x41U, 0x3FU, 0x01U}, {0x7FU, 0x08U, 0x14U, 0x22U, 0x41U},
+  {0x7FU, 0x40U, 0x40U, 0x40U, 0x40U}, {0x7FU, 0x02U, 0x0CU, 0x02U, 0x7FU},
+  {0x7FU, 0x04U, 0x08U, 0x10U, 0x7FU}, {0x3EU, 0x41U, 0x41U, 0x41U, 0x3EU},
+  {0x7FU, 0x09U, 0x09U, 0x09U, 0x06U}, {0x3EU, 0x41U, 0x51U, 0x21U, 0x5EU},
+  {0x7FU, 0x09U, 0x19U, 0x29U, 0x46U}, {0x46U, 0x49U, 0x49U, 0x49U, 0x31U},
+  {0x01U, 0x01U, 0x7FU, 0x01U, 0x01U}, {0x3FU, 0x40U, 0x40U, 0x40U, 0x3FU},
+  {0x1FU, 0x20U, 0x40U, 0x20U, 0x1FU}, {0x3FU, 0x40U, 0x38U, 0x40U, 0x3FU},
+  {0x63U, 0x14U, 0x08U, 0x14U, 0x63U}, {0x07U, 0x08U, 0x70U, 0x08U, 0x07U},
+  {0x61U, 0x51U, 0x49U, 0x45U, 0x43U}, {0x00U, 0x7FU, 0x41U, 0x41U, 0x00U},
+  {0x02U, 0x04U, 0x08U, 0x10U, 0x20U}, {0x00U, 0x41U, 0x41U, 0x7FU, 0x00U},
+  {0x04U, 0x02U, 0x01U, 0x02U, 0x04U}, {0x40U, 0x40U, 0x40U, 0x40U, 0x40U},
+  {0x00U, 0x01U, 0x02U, 0x04U, 0x00U}, {0x20U, 0x54U, 0x54U, 0x54U, 0x78U},
+  {0x7FU, 0x48U, 0x44U, 0x44U, 0x38U}, {0x38U, 0x44U, 0x44U, 0x44U, 0x20U},
+  {0x38U, 0x44U, 0x44U, 0x48U, 0x7FU}, {0x38U, 0x54U, 0x54U, 0x54U, 0x18U},
+  {0x08U, 0x7EU, 0x09U, 0x01U, 0x02U}, {0x0CU, 0x52U, 0x52U, 0x52U, 0x3EU},
+  {0x7FU, 0x08U, 0x04U, 0x04U, 0x78U}, {0x00U, 0x44U, 0x7DU, 0x40U, 0x00U},
+  {0x20U, 0x40U, 0x44U, 0x3DU, 0x00U}, {0x7FU, 0x10U, 0x28U, 0x44U, 0x00U},
+  {0x00U, 0x41U, 0x7FU, 0x40U, 0x00U}, {0x7CU, 0x04U, 0x18U, 0x04U, 0x78U},
+  {0x7CU, 0x08U, 0x04U, 0x04U, 0x78U}, {0x38U, 0x44U, 0x44U, 0x44U, 0x38U},
+  {0x7CU, 0x14U, 0x14U, 0x14U, 0x08U}, {0x08U, 0x14U, 0x14U, 0x18U, 0x7CU},
+  {0x7CU, 0x08U, 0x04U, 0x04U, 0x08U}, {0x48U, 0x54U, 0x54U, 0x54U, 0x20U},
+  {0x04U, 0x3FU, 0x44U, 0x40U, 0x20U}, {0x3CU, 0x40U, 0x40U, 0x20U, 0x7CU},
+  {0x1CU, 0x20U, 0x40U, 0x20U, 0x1CU}, {0x3CU, 0x40U, 0x30U, 0x40U, 0x3CU},
+  {0x44U, 0x28U, 0x10U, 0x28U, 0x44U}, {0x0CU, 0x50U, 0x50U, 0x50U, 0x3CU},
+  {0x44U, 0x64U, 0x54U, 0x4CU, 0x44U}, {0x00U, 0x08U, 0x36U, 0x41U, 0x00U},
+  {0x00U, 0x00U, 0x7FU, 0x00U, 0x00U}, {0x00U, 0x41U, 0x36U, 0x08U, 0x00U},
+  {0x10U, 0x08U, 0x08U, 0x10U, 0x08U},
+};
+
 static const display_driver_t display_st7789_driver_instance = {
   .descriptor =
     {
@@ -86,7 +147,7 @@ static const display_driver_t display_st7789_driver_instance = {
       .size = {ST7789_WIDTH_DEFAULT, ST7789_HEIGHT_DEFAULT},
       .qb45 =
         {
-          .can_draw_text = false,
+          .can_draw_text = true,
           .can_draw_graphics = true,
           .can_read_pixels = false,
           .qb45_screen = true,
@@ -170,9 +231,47 @@ static ErrorStatus display_st7789_set_cursor(void *context, display_text_cursor_
 }
 
 static ErrorStatus display_st7789_write_text(void *context, const char *text) {
-  (void)context;
-  (void)text;
-  return ERROR;
+  display_st7789_context_t *driver = (display_st7789_context_t *)context;
+  if (text == NULL || !display_st7789_can_use(driver) || display_st7789_init(driver) != SUCCESS) {
+    return ERROR;
+  }
+
+  while (*text != '\0') {
+    char ch = *text++;
+    if (ch == '\r') {
+      continue;
+    }
+    if (ch == '\n') {
+      driver->cursor.row++;
+      driver->cursor.col = 1U;
+      if (driver->cursor.row > ST7789_TEXT_ROWS) {
+        break;
+      }
+      continue;
+    }
+    if (ch == '\t') {
+      do {
+        if (display_st7789_draw_text_cell(driver, driver->cursor.col, driver->cursor.row, ' ') != SUCCESS) {
+          return ERROR;
+        }
+        driver->cursor.col++;
+      } while (driver->cursor.col <= ST7789_TEXT_COLUMNS && ((driver->cursor.col - 1U) % 4U) != 0U);
+      continue;
+    }
+    if (driver->cursor.col > ST7789_TEXT_COLUMNS) {
+      driver->cursor.row++;
+      driver->cursor.col = 1U;
+    }
+    if (driver->cursor.row > ST7789_TEXT_ROWS) {
+      break;
+    }
+    if (display_st7789_draw_text_cell(driver, driver->cursor.col, driver->cursor.row, ch) != SUCCESS) {
+      return ERROR;
+    }
+    driver->cursor.col++;
+  }
+
+  return SUCCESS;
 }
 
 static ErrorStatus display_st7789_draw_pixel(void *context, display_point_t point, uint16_t color) {
@@ -573,6 +672,57 @@ static ErrorStatus display_st7789_write_color_run(display_st7789_context_t *driv
   }
 
   return status;
+}
+
+static ErrorStatus display_st7789_draw_text_cell(display_st7789_context_t *driver, uint16_t column, uint16_t row,
+                                                 char ch) {
+  uint8_t pixels[ST7789_TEXT_CELL_WIDTH * ST7789_TEXT_CELL_HEIGHT * 2U];
+  const uint8_t *glyph = display_st7789_glyph(ch);
+  uint16_t x = (uint16_t)((column - 1U) * ST7789_TEXT_CELL_WIDTH);
+  uint16_t y = (uint16_t)((row - 1U) * ST7789_TEXT_CELL_HEIGHT);
+  size_t offset = 0U;
+  ErrorStatus status = SUCCESS;
+
+  if (!display_st7789_can_use(driver) || column == 0U || row == 0U || column > ST7789_TEXT_COLUMNS ||
+      row > ST7789_TEXT_ROWS) {
+    return ERROR;
+  }
+
+  for (uint16_t pixel_y = 0U; pixel_y < ST7789_TEXT_CELL_HEIGHT; pixel_y++) {
+    for (uint16_t pixel_x = 0U; pixel_x < ST7789_TEXT_CELL_WIDTH; pixel_x++) {
+      bool foreground = pixel_x < ST7789_FONT_WIDTH && pixel_y < ST7789_FONT_HEIGHT &&
+                        ((glyph[pixel_x] & (uint8_t)(1U << pixel_y)) != 0U);
+      uint16_t color = foreground ? driver->colors.fg : driver->colors.bg;
+      pixels[offset++] = (uint8_t)(color >> 8);
+      pixels[offset++] = (uint8_t)color;
+    }
+  }
+
+  if (display_st7789_set_window(driver, x, y, (uint16_t)(x + ST7789_TEXT_CELL_WIDTH - 1U),
+                                (uint16_t)(y + ST7789_TEXT_CELL_HEIGHT - 1U)) != SUCCESS ||
+      (driver->bus.set_chip_select != NULL && driver->bus.set_chip_select(driver->bus_context, true) != SUCCESS)) {
+    return ERROR;
+  }
+
+  status = display_st7789_write_selected_data(driver, pixels, sizeof(pixels));
+  if (driver->bus.set_chip_select != NULL &&
+      driver->bus.set_chip_select(driver->bus_context, false) != SUCCESS) {
+    status = ERROR;
+  }
+
+  return status;
+}
+
+static const uint8_t *display_st7789_glyph(char ch) {
+  char normalized = display_st7789_normalize_char(ch);
+  return display_st7789_font5x7[(uint8_t)normalized - ST7789_FONT_FIRST_CHAR];
+}
+
+static char display_st7789_normalize_char(char ch) {
+  if ((uint8_t)ch < ST7789_FONT_FIRST_CHAR || (uint8_t)ch > ST7789_FONT_LAST_CHAR) {
+    return '?';
+  }
+  return ch;
 }
 
 static bool display_st7789_can_use(display_st7789_context_t *driver) {
