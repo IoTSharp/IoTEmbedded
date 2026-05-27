@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using System.Xml.Linq;
 
 namespace VisualGDBBuild;
@@ -47,22 +48,31 @@ internal static class Program {
         return 0;
       }
 
-      string actionSwitch = options.Action.ToLowerInvariant() switch {
+      string normalizedAction = options.Action.ToLowerInvariant();
+      string actionSwitch = normalizedAction switch {
         "build" => "/build",
         "clean" => "/clean",
         "rebuild" => "/rebuild",
-        _ => throw new InvalidOperationException($"Unsupported action '{options.Action}'. Use build, clean, or rebuild."),
+        "flash" => "/build",
+        _ => throw new InvalidOperationException($"Unsupported action '{options.Action}'. Use build, clean, rebuild, or flash."),
       };
 
       string configuration = options.Configuration ?? DefaultConfiguration;
       string platform = options.Platform ?? DefaultPlatform;
       string buildDir = ExpandVisualGdbBinaryDirectory(project.BinaryDirectory, platform, configuration);
+      string buildDirFullPath = Path.Combine(Path.GetDirectoryName(projectPath)!, buildDir);
+      string? firmwareImage = normalizedAction == "flash"
+        ? FindFirmwareImage(repoRoot, buildDirFullPath, projectPath, options.FirmwarePath)
+        : null;
 
       Console.WriteLine($"VisualGDB: {visualGdbExe}");
       Console.WriteLine($"Project:   {Path.GetRelativePath(repoRoot, projectPath)}");
       Console.WriteLine($"Solution:  {Path.GetRelativePath(repoRoot, solutionPath)}");
       Console.WriteLine($"Config:    {configuration}|{platform}");
       Console.WriteLine($"BuildDir:  {Path.GetRelativePath(Path.GetDirectoryName(projectPath)!, Path.Combine(Path.GetDirectoryName(projectPath)!, buildDir))}");
+      if (firmwareImage != null) {
+        Console.WriteLine($"Firmware:  {Path.GetRelativePath(repoRoot, firmwareImage)}");
+      }
       Console.WriteLine();
 
       string[] visualGdbArgs = [
@@ -75,7 +85,31 @@ internal static class Program {
 
       Console.WriteLine(QuoteCommand(visualGdbExe, visualGdbArgs));
       if (options.DryRun) {
+        if (normalizedAction == "flash" && firmwareImage != null) {
+          OpenOcdInstall openOcd = FindOpenOcdInstall(project);
+          string[] openOcdArgs = BuildOpenOcdFlashArgs(openOcd, project, firmwareImage, options.FlashAddress);
+          Console.WriteLine(QuoteCommand(openOcd.Executable, openOcdArgs));
+        }
         return 0;
+      }
+
+      if (normalizedAction == "flash") {
+        if (!options.NoBuild) {
+          int buildExitCode = RunProcess(visualGdbExe, visualGdbArgs, repoRoot);
+          if (buildExitCode != 0) {
+            return buildExitCode;
+          }
+        }
+
+        if (firmwareImage == null) {
+          throw new InvalidOperationException("No firmware image found to flash.");
+        }
+
+        OpenOcdInstall openOcd = FindOpenOcdInstall(project);
+        string[] openOcdArgs = BuildOpenOcdFlashArgs(openOcd, project, firmwareImage, options.FlashAddress);
+        Console.WriteLine();
+        Console.WriteLine(QuoteCommand(openOcd.Executable, openOcdArgs));
+        return RunProcess(openOcd.Executable, openOcdArgs, repoRoot);
       }
 
       return RunProcess(visualGdbExe, visualGdbArgs, repoRoot);
@@ -199,7 +233,16 @@ internal static class Program {
       .FirstOrDefault(e => e.Name.LocalName == "CMakeCommand")?
       .Descendants().FirstOrDefault(e => e.Name.LocalName == "Command")?.Value.Trim() ?? "$(SYSPROGS_CMAKE_PATH)";
 
-    return new VisualGdbProject(toolchainId, toolchainVersion, binaryDirectory, makeCommand, cmakeCommand);
+    XElement? debugMethod = document.Descendants().FirstOrDefault(e => e.Name.LocalName == "DebugMethod");
+    string debugMethodId = debugMethod?.Elements().FirstOrDefault(e => e.Name.LocalName == "ID")?.Value.Trim() ?? "";
+    string openOcdCommandLine = debugMethod?.Descendants()
+      .FirstOrDefault(e => e.Name.LocalName == "CommandLine")?.Value.Trim() ?? "";
+    bool connectUnderReset = string.Equals(debugMethod?.Descendants()
+      .FirstOrDefault(e => e.Name.LocalName == "ConnectUnderReset")?.Value.Trim(), "true",
+      StringComparison.OrdinalIgnoreCase);
+
+    return new VisualGdbProject(toolchainId, toolchainVersion, binaryDirectory, makeCommand, cmakeCommand,
+      debugMethodId, openOcdCommandLine, connectUnderReset);
   }
 
   private static string FindVisualGdbExe(string? requestedPath) {
@@ -264,6 +307,16 @@ internal static class Program {
     Console.WriteLine("ARM GCC:           " + ExistingPath(gccPath));
     Console.WriteLine("Project CMake:     " + project.CMakeCommand);
     Console.WriteLine("Project Make:      " + project.MakeCommand);
+    Console.WriteLine("Debug method:      " + EmptyAsUnknown(project.DebugMethodId));
+    Console.WriteLine("OpenOCD command:   " + EmptyAsUnknown(project.OpenOcdCommandLine));
+    Console.WriteLine("Connect reset:     " + (project.ConnectUnderReset ? "true" : "false"));
+    try {
+      OpenOcdInstall openOcd = FindOpenOcdInstall(project);
+      Console.WriteLine("OpenOCD.exe:       " + ExistingPath(openOcd.Executable));
+      Console.WriteLine("OpenOCD scripts:   " + ExistingPath(openOcd.ScriptsDirectory));
+    } catch (Exception ex) {
+      Console.WriteLine("OpenOCD.exe:       " + ex.Message);
+    }
   }
 
   private static string FindToolchainRoot(string visualGdbLocal, VisualGdbProject project) {
@@ -301,6 +354,151 @@ internal static class Program {
       .Replace("$(ConfigurationName)", configuration, StringComparison.OrdinalIgnoreCase)
       .Replace('\\', Path.DirectorySeparatorChar)
       .Replace('/', Path.DirectorySeparatorChar);
+  }
+
+  private static string? FindFirmwareImage(string repoRoot, string buildDirectory, string projectPath,
+                                           string? requestedPath) {
+    if (!string.IsNullOrWhiteSpace(requestedPath)) {
+      string fullPath = MakeFullPath(repoRoot, requestedPath);
+      EnsureFileExists(fullPath, "firmware image");
+      return fullPath;
+    }
+
+    string targetName = Path.GetFileNameWithoutExtension(projectPath);
+    string[] candidates = [
+      Path.Combine(buildDirectory, targetName),
+      Path.Combine(buildDirectory, targetName + ".elf"),
+      Path.Combine(buildDirectory, targetName + ".hex"),
+      Path.Combine(buildDirectory, targetName + ".bin"),
+    ];
+
+    foreach (string candidate in candidates) {
+      if (File.Exists(candidate)) {
+        return candidate;
+      }
+    }
+
+    if (!Directory.Exists(buildDirectory)) {
+      return null;
+    }
+
+    return Directory.EnumerateFiles(buildDirectory, "*", SearchOption.TopDirectoryOnly)
+      .Where(path => IsFlashableFirmware(Path.GetFileName(path)))
+      .OrderBy(path => FirmwarePreference(path))
+      .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
+      .FirstOrDefault();
+  }
+
+  private static bool IsFlashableFirmware(string fileName) {
+    string extension = Path.GetExtension(fileName);
+    if (extension.Equals(".elf", StringComparison.OrdinalIgnoreCase) ||
+        extension.Equals(".hex", StringComparison.OrdinalIgnoreCase) ||
+        extension.Equals(".bin", StringComparison.OrdinalIgnoreCase)) {
+      return true;
+    }
+
+    return string.IsNullOrEmpty(extension);
+  }
+
+  private static int FirmwarePreference(string path) {
+    string extension = Path.GetExtension(path);
+    if (string.IsNullOrEmpty(extension) || extension.Equals(".elf", StringComparison.OrdinalIgnoreCase)) {
+      return 0;
+    }
+    if (extension.Equals(".hex", StringComparison.OrdinalIgnoreCase)) {
+      return 1;
+    }
+    return 2;
+  }
+
+  private static OpenOcdInstall FindOpenOcdInstall(VisualGdbProject project) {
+    if (!project.DebugMethodId.Contains("openocd", StringComparison.OrdinalIgnoreCase)) {
+      throw new InvalidOperationException("Project debug method is not OpenOCD: " + EmptyAsUnknown(project.DebugMethodId));
+    }
+
+    string visualGdbLocal = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+      "VisualGDB");
+    string packagesRoot = Path.Combine(visualGdbLocal, "EmbeddedDebugPackages");
+    List<string> packageIds = [];
+    if (!string.IsNullOrWhiteSpace(project.DebugMethodId)) {
+      packageIds.Add(project.DebugMethodId);
+    }
+    packageIds.Add("com.sysprogs.arm.openocd");
+    packageIds.Add("com.sysprogs.arm.openocd.st");
+
+    foreach (string packageId in packageIds.Distinct(StringComparer.OrdinalIgnoreCase)) {
+      string packageRoot = Path.Combine(packagesRoot, packageId);
+      string executable = Path.Combine(packageRoot, "bin", "openocd.exe");
+      string scriptsDirectory = Path.Combine(packageRoot, "share", "openocd", "scripts");
+      if (File.Exists(executable) && Directory.Exists(scriptsDirectory)) {
+        return new OpenOcdInstall(executable, scriptsDirectory);
+      }
+    }
+
+    if (Directory.Exists(packagesRoot)) {
+      foreach (string executable in Directory.EnumerateFiles(packagesRoot, "openocd.exe", SearchOption.AllDirectories)) {
+        string packageRoot = Directory.GetParent(Directory.GetParent(executable)!.FullName)!.FullName;
+        string scriptsDirectory = Path.Combine(packageRoot, "share", "openocd", "scripts");
+        if (Directory.Exists(scriptsDirectory)) {
+          return new OpenOcdInstall(executable, scriptsDirectory);
+        }
+      }
+    }
+
+    throw new InvalidOperationException("VisualGDB OpenOCD package was not found under " + packagesRoot);
+  }
+
+  private static string[] BuildOpenOcdFlashArgs(OpenOcdInstall openOcd, VisualGdbProject project,
+                                                string firmwareImage, string flashAddress) {
+    if (string.IsNullOrWhiteSpace(project.OpenOcdCommandLine)) {
+      throw new InvalidOperationException("OpenOCD command line is missing from the VisualGDB project.");
+    }
+
+    List<string> args = ["-s", openOcd.ScriptsDirectory];
+    args.AddRange(SplitCommandLine(project.OpenOcdCommandLine));
+    args.Add("-c");
+    args.Add(BuildOpenOcdProgramCommand(firmwareImage, flashAddress));
+    return args.ToArray();
+  }
+
+  private static string BuildOpenOcdProgramCommand(string firmwareImage, string flashAddress) {
+    string openOcdPath = firmwareImage.Replace('\\', '/').Replace("\"", "\\\"", StringComparison.Ordinal);
+    string extension = Path.GetExtension(firmwareImage);
+    if (extension.Equals(".bin", StringComparison.OrdinalIgnoreCase)) {
+      return $"program \"{openOcdPath}\" {flashAddress} verify reset exit";
+    }
+
+    return $"program \"{openOcdPath}\" verify reset exit";
+  }
+
+  private static IReadOnlyList<string> SplitCommandLine(string commandLine) {
+    List<string> result = [];
+    StringBuilder current = new();
+    bool inQuotes = false;
+
+    for (int i = 0; i < commandLine.Length; i++) {
+      char ch = commandLine[i];
+      if (ch == '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+
+      if (char.IsWhiteSpace(ch) && !inQuotes) {
+        if (current.Length > 0) {
+          result.Add(current.ToString());
+          current.Clear();
+        }
+        continue;
+      }
+
+      current.Append(ch);
+    }
+
+    if (current.Length > 0) {
+      result.Add(current.ToString());
+    }
+
+    return result;
   }
 
   private static string ExpandMsBuildProperties(string value, IReadOnlyDictionary<string, string> properties) {
@@ -395,6 +593,9 @@ Options:
   --project <path>                 Explicit .vgdbcmake project path
   --solution <path>                Explicit .sln path
   --visualgdb <path>               Explicit VisualGDB.exe path
+  --firmware <path>                Explicit ELF/HEX/BIN firmware image for --action flash
+  --flash-address <addr>           Base address for BIN flashing. Default: 0x08000000
+  --no-build                       With --action flash, skip build and only program existing image
   --diagnose                       Print VisualGDB/CMake/Ninja/toolchain paths
   --list                           List .vgdbcmake projects
   --dry-run                        Print the VisualGDB command without running it
@@ -410,8 +611,11 @@ Options:
     public string? ProjectPath { get; private set; }
     public string? SolutionPath { get; private set; }
     public string? VisualGdbPath { get; private set; }
+    public string? FirmwarePath { get; private set; }
+    public string FlashAddress { get; private set; } = "0x08000000";
     public bool Diagnose { get; private set; }
     public bool DryRun { get; private set; }
+    public bool NoBuild { get; private set; }
     public bool ListProjects { get; private set; }
     public bool ShowHelp { get; private set; }
 
@@ -443,6 +647,15 @@ Options:
             break;
           case "--visualgdb":
             options.VisualGdbPath = RequireValue(args, ref i, arg);
+            break;
+          case "--firmware":
+            options.FirmwarePath = RequireValue(args, ref i, arg);
+            break;
+          case "--flash-address":
+            options.FlashAddress = RequireValue(args, ref i, arg);
+            break;
+          case "--no-build":
+            options.NoBuild = true;
             break;
           case "--diagnose":
             options.Diagnose = true;
@@ -477,5 +690,8 @@ Options:
   }
 
   private sealed record VisualGdbProject(string ToolchainId, string ToolchainVersion, string BinaryDirectory,
-                                         string MakeCommand, string CMakeCommand);
+                                         string MakeCommand, string CMakeCommand, string DebugMethodId,
+                                         string OpenOcdCommandLine, bool ConnectUnderReset);
+
+  private sealed record OpenOcdInstall(string Executable, string ScriptsDirectory);
 }
