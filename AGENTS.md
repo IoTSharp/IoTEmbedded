@@ -93,6 +93,15 @@ src/<Module>[/<SubModule>]/
   `Core/Inc/FreeRTOSConfig.h`、`Core/Src/freertos.c`，BSP 导入
   `CMSIS_RTOS_V2/cmsis_os2.c`、正确 CPU 对应的 `portable/GCC/<port>` 和 `heap_4.c`。
   HAL tick 使用硬件定时器（如 TIM2），SysTick 留给 RTOS。
+- 构建验证必须以 VisualGDB 的实际工程链路为准；不要因为 `cmake`、
+  `arm-none-eabi-gcc`、`ninja` 等不在全局 `PATH` 中就判断无法构建。命令行验证优先
+  使用仓库 C# 工具：
+  ```console
+  dotnet run --project tools/VisualGDBBuild -- l4
+  dotnet run --project tools/VisualGDBBuild -- f1
+  dotnet run --project tools/VisualGDBBuild -- l4 --diagnose
+  ```
+- 新增构建辅助工具只允许使用 C# 或 C++；不要新增 PowerShell / Python 构建脚本。
 
 ## 4. 文件操作规范
 

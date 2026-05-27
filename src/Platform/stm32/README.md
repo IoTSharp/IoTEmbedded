@@ -43,6 +43,22 @@ Include paths are limited to:
 
 Do not add per-module include paths for repository business modules.
 
+VisualGDB owns the STM32 build toolchain resolution. On Windows, `cmake`,
+`ninja`, and `arm-none-eabi-gcc` can be absent from global `PATH` while still
+being available to VisualGDB via `%LOCALAPPDATA%\VisualGDB`, `VISUALGDB_DIR`,
+and `C:\SysGCC\arm-eabi`. Command-line validation should therefore use the
+C# wrapper:
+
+```console
+dotnet run --project tools/VisualGDBBuild -- l4
+dotnet run --project tools/VisualGDBBuild -- f1
+dotnet run --project tools/VisualGDBBuild -- l4 --diagnose
+```
+
+Do not add PowerShell or Python build scripts for this repository; build
+automation helpers should be C# or C++ tools that invoke the VisualGDB project
+chain.
+
 ## FreeRTOS
 
 RTOS boards use FreeRTOS through CMSIS-RTOS2:
@@ -73,7 +89,7 @@ After adding or changing a platform:
 
 - run the VisualGDB CubeMX importer or configure the CMake project from a clean
   build directory
-- build once with VisualGDB/CMake
+- build once with VisualGDB/CMake, preferably via `tools/VisualGDBBuild`
 - confirm the generated BSP contains `Core`, `Drivers`, and `Middlewares` when
   RTOS is enabled
 - confirm no executable `target_sources()` entry points into `${PLATFORM_ROOT}`
