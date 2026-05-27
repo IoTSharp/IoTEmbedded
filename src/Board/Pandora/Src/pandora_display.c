@@ -9,6 +9,7 @@
 #define PANDORA_LCD_SPI                     SPI3
 #define PANDORA_LCD_SPI_TIMEOUT_TICKS       1000000U
 #define PANDORA_LCD_SPI_BAUD_PRESCALER_BITS 0U
+#define PANDORA_LCD_SPI_MODE_BITS           (SPI_CR1_CPOL | SPI_CR1_CPHA)
 #define PANDORA_LCD_DC_GPIO_Port            GPIOB
 #define PANDORA_LCD_DC_Pin                  GPIO_PIN_4
 #define PANDORA_LCD_RES_GPIO_Port           GPIOB
@@ -83,40 +84,40 @@ static ErrorStatus pandora_display_bus_init(void) {
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_SPI3_CLK_ENABLE();
 
-  HAL_GPIO_WritePin(PANDORA_LCD_CS_GPIO_Port, PANDORA_LCD_CS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(PANDORA_LCD_CS_GPIO_Port, PANDORA_LCD_CS_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(PANDORA_LCD_DC_GPIO_Port, PANDORA_LCD_DC_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(PANDORA_LCD_RES_GPIO_Port, PANDORA_LCD_RES_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(PANDORA_LCD_PWR_GPIO_Port, PANDORA_LCD_PWR_Pin, GPIO_PIN_RESET);
 
   GPIO_InitStruct.Pin = PANDORA_LCD_SCK_Pin | PANDORA_LCD_MOSI_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
   HAL_GPIO_Init(PANDORA_LCD_SCK_GPIO_Port, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = PANDORA_LCD_DC_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
   HAL_GPIO_Init(PANDORA_LCD_DC_GPIO_Port, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = PANDORA_LCD_RES_Pin | PANDORA_LCD_PWR_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   GPIO_InitStruct.Pin = PANDORA_LCD_CS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(PANDORA_LCD_CS_GPIO_Port, &GPIO_InitStruct);
 
   PANDORA_LCD_SPI->CR1 = 0U;
   PANDORA_LCD_SPI->CR2 = 0U;
-  PANDORA_LCD_SPI->CR1 = SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE |
-                         PANDORA_LCD_SPI_BAUD_PRESCALER_BITS;
+  PANDORA_LCD_SPI->CR1 = PANDORA_LCD_SPI_MODE_BITS | SPI_CR1_MSTR | SPI_CR1_SSM | SPI_CR1_SSI |
+                         SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE | PANDORA_LCD_SPI_BAUD_PRESCALER_BITS;
   PANDORA_LCD_SPI->CR2 = (7U << SPI_CR2_DS_Pos) | SPI_CR2_FRXTH;
   PANDORA_LCD_SPI->CR1 |= SPI_CR1_SPE;
   return SUCCESS;
@@ -193,7 +194,8 @@ static ErrorStatus pandora_display_set_reset(void *context, bool asserted) {
 static ErrorStatus pandora_display_set_chip_select(void *context, bool selected) {
   (void)context;
 #if BSP_HAS_DISPLAY
-  HAL_GPIO_WritePin(PANDORA_LCD_CS_GPIO_Port, PANDORA_LCD_CS_Pin, selected ? GPIO_PIN_RESET : GPIO_PIN_SET);
+  (void)selected;
+  HAL_GPIO_WritePin(PANDORA_LCD_CS_GPIO_Port, PANDORA_LCD_CS_Pin, GPIO_PIN_RESET);
   return SUCCESS;
 #else
   (void)selected;

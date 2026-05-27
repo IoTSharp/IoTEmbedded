@@ -32,6 +32,7 @@ bsp_compile_definitions(
 
 add_bsp_based_executable(
 	NAME STM32L475VETX
+	LINKER_SCRIPT ${CMAKE_CURRENT_LIST_DIR}/STM32L475VETX_FLASH.ld
 	GENERATE_BIN
 	GENERATE_MAP)
 

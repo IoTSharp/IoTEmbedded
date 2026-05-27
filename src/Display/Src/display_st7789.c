@@ -38,7 +38,7 @@
 #define ST7789_CMD_NVGAMCTRL 0xE1U
 
 #define ST7789_MADCTL_RGB 0x00U
-#define ST7789_COLMOD_16B 0x55U
+#define ST7789_COLMOD_16B 0x65U
 
 static ErrorStatus display_st7789_configure_screen(void *context, int mode);
 static ErrorStatus display_st7789_clear(void *context, uint16_t color);
@@ -411,43 +411,33 @@ static ErrorStatus display_st7789_init(display_st7789_context_t *driver) {
     return SUCCESS;
   }
 
-  if (driver->bus.set_power != NULL && driver->bus.set_power(driver->bus_context, true) != SUCCESS) {
-    return ERROR;
-  }
-  display_st7789_delay(driver, 20U);
-
   if (display_st7789_reset_panel(driver) != SUCCESS) {
     return ERROR;
   }
 
-  if (display_st7789_write_command(driver, ST7789_CMD_SWRESET) != SUCCESS) {
-    return ERROR;
-  }
-  display_st7789_delay(driver, 150U);
   if (display_st7789_write_command(driver, ST7789_CMD_SLPOUT) != SUCCESS) {
     return ERROR;
   }
   display_st7789_delay(driver, 120U);
-
-  data = ST7789_COLMOD_16B;
-  if (display_st7789_write_command_data(driver, ST7789_CMD_COLMOD, &data, 1U) != SUCCESS) {
-    return ERROR;
-  }
-  display_st7789_delay(driver, 10U);
 
   data = ST7789_MADCTL_RGB;
   if (display_st7789_write_command_data(driver, ST7789_CMD_MADCTL, &data, 1U) != SUCCESS) {
     return ERROR;
   }
 
+  data = ST7789_COLMOD_16B;
+  if (display_st7789_write_command_data(driver, ST7789_CMD_COLMOD, &data, 1U) != SUCCESS) {
+    return ERROR;
+  }
+
   if (display_st7789_write_command_data(driver, ST7789_CMD_PORCTRL, porctrl, sizeof(porctrl)) != SUCCESS) {
     return ERROR;
   }
-  data = 0x35U;
+  data = 0x72U;
   if (display_st7789_write_command_data(driver, ST7789_CMD_GCTRL, &data, 1U) != SUCCESS) {
     return ERROR;
   }
-  data = 0x19U;
+  data = 0x3DU;
   if (display_st7789_write_command_data(driver, ST7789_CMD_VCOMS, &data, 1U) != SUCCESS) {
     return ERROR;
   }
@@ -459,7 +449,7 @@ static ErrorStatus display_st7789_init(display_st7789_context_t *driver) {
   if (display_st7789_write_command_data(driver, ST7789_CMD_VDVVRHEN, &data, 1U) != SUCCESS) {
     return ERROR;
   }
-  data = 0x12U;
+  data = 0x19U;
   if (display_st7789_write_command_data(driver, ST7789_CMD_VRHS, &data, 1U) != SUCCESS) {
     return ERROR;
   }
@@ -484,6 +474,9 @@ static ErrorStatus display_st7789_init(display_st7789_context_t *driver) {
     return ERROR;
   }
   display_st7789_delay(driver, 120U);
+  if (driver->bus.set_power != NULL && driver->bus.set_power(driver->bus_context, true) != SUCCESS) {
+    return ERROR;
+  }
 
   driver->initialized = true;
   return SUCCESS;

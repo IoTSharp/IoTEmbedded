@@ -182,15 +182,15 @@ static void app_log_reset_cause(void) {
 
 #if BSP_HAS_DISPLAY
 static void app_show_boot_screen(network_mode_t network_mode) {
-  const display_color_pair_t title_colors = {0xFFE0U, 0x0000U};
-  const display_color_pair_t body_colors = {0xFFFFU, 0x0000U};
+  const display_color_pair_t title_colors = {0x001FU, 0xFFFFU};
+  const display_color_pair_t body_colors = {0x0000U, 0xFFFFU};
   char mqtt_target[40] = {0};
   char sysclk[24] = {0};
 
   (void)snprintf(mqtt_target, sizeof(mqtt_target), "%s:%u", active_config.mqtt.ip, active_config.mqtt.port);
   (void)snprintf(sysclk, sizeof(sysclk), "%luHZ", HAL_RCC_GetSysClockFreq());
 
-  (void)display_api_cls(0x0000U);
+  (void)display_api_cls(0xFFFFU);
   (void)display_api_color(title_colors);
   (void)display_api_locate((display_text_cursor_t){1U, 1U});
   (void)display_api_write_text("IOTEMBEDDED BOOT\n");
