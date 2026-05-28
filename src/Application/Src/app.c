@@ -16,6 +16,7 @@
 #include "Protocol/Modbus/Inc/modbus_api.h"
 #include "Application/Inc/modbus_test.h"
 #include "Protocol/Mqtt/Inc/mqtt_client.h"
+#include "Network/Ap6181/Inc/bsp_ap6181.h"
 #include "Network/Inc/network_manager.h"
 #include "Protocol/Platform/Inc/platform_messages.h"
 #if BSP_HAS_DISPLAY
@@ -75,7 +76,11 @@ void app_init(void) {
   LOG_INFO("Network probe target: %s:%u every %lu ms", active_config.network_monitor.probe_host,
            active_config.network_monitor.probe_port, active_config.network_monitor.probe_interval_ms);
   LOG_INFO("Network mode: %s", config_network_mode_name(network_mode));
-#if BSP_HAS_CH395Q || BSP_HAS_AIR724UG
+#if BSP_HAS_AP6181
+  LOG_INFO("Network primary: AP6181 WiFi/SDMMC1");
+  LOG_INFO("Network WiFi pins: %s", bsp_ap6181_pin_map());
+  LOG_WARNING("AP6181 WiFi socket driver pending; MQTT must not use CH395Q/4G fallback on Pandora");
+#elif BSP_HAS_CH395Q || BSP_HAS_AIR724UG
   if (network_mode == NETWORK_MODE_AIR724UG) {
     LOG_INFO("Network primary: Air724UG 4G on UART4");
   } else if (network_mode == NETWORK_MODE_CH395Q) {
@@ -96,7 +101,7 @@ void app_init(void) {
     LOG_INFO("CH395Q init skipped by network_mode=4g");
   }
 #else
-  LOG_WARNING("Board network socket adapter not enabled yet; Pandora AP6181 SDIO WiFi is mapped in IOC only");
+  LOG_WARNING("Board network socket adapter not enabled");
 #endif
 
   network_manager_init(&active_config.network_monitor, network_mode);
@@ -202,6 +207,9 @@ static void app_show_boot_screen(network_mode_t network_mode) {
   app_display_write_line(6U, "SYSCLK", sysclk);
   app_display_write_line(7U, "NET", config_network_mode_name(network_mode));
   app_display_write_line(8U, "MQTT", mqtt_target);
+#if BSP_HAS_AP6181
+  app_display_write_line(9U, "LINK", "AP6181 WIFI");
+#endif
   app_display_write_line(10U, "STATUS", "STARTING SERVICES");
 }
 

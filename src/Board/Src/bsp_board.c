@@ -1,5 +1,6 @@
 #include "Board/Inc/bsp_board.h"
 #include "Network/Ch395/Inc/bsp_ch395.h"
+#include "Network/Ap6181/Inc/bsp_ap6181.h"
 #if defined(STM32L475xx) || defined(STM32L475VE) || defined(STM32L4)
 #include "Board/Pandora/Inc/pandora_display.h"
 #include "Board/Pandora/Inc/pandora_board_resources.h"
@@ -14,6 +15,10 @@ void bsp_board_init(void) {
   bsp_ch395_prepare_boot_pins();
   // 最新 SVG 原理图确认 PA4/RST1 是低有效外部复位输入；PA5/RST 是 CH395Q 复位输出，只能读取不能由 MCU 驱动。
   HAL_GPIO_WritePin(BSP_CH395_RSTI_GPIO_Port, BSP_CH395_RSTI_Pin, GPIO_PIN_SET);
+#endif
+#if BSP_HAS_AP6181
+  bsp_ap6181_prepare_pins();
+  bsp_ap6181_enable();
 #endif
   HAL_GPIO_WritePin(BSP_BUZZER_GPIO_Port, BSP_BUZZER_Pin, GPIO_PIN_RESET);
 }

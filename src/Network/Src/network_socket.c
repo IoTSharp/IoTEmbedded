@@ -137,6 +137,12 @@ static const network_socket_ops_t *network_socket_ops_for_link(network_link_t li
 #else
     return NULL;
 #endif
+  case NETWORK_LINK_AP6181:
+#if BSP_HAS_AP6181
+    return &network_socket_ap6181_ops;
+#else
+    return NULL;
+#endif
   case NETWORK_LINK_NONE:
   default:
     return NULL;

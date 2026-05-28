@@ -19,6 +19,7 @@ typedef enum {
   NETWORK_MODE_AUTO = 0,
   NETWORK_MODE_CH395Q,
   NETWORK_MODE_AIR724UG,
+  NETWORK_MODE_WIFI,
 } network_mode_t;
 
 typedef struct {

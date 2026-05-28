@@ -50,6 +50,7 @@ bool network_socket_probe_tcp_port(const char *host, uint16_t port);
 
 extern const network_socket_ops_t network_socket_ch395_ops;
 extern const network_socket_ops_t network_socket_air724_ops;
+extern const network_socket_ops_t network_socket_ap6181_ops;
 
 #ifdef __cplusplus
 }

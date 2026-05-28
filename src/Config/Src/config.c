@@ -15,6 +15,7 @@
 #include "Protocol/Modbus/Inc/modbus_core_crc.h"
 #include "Protocol/Modbus/Inc/modbus_core_master.h"
 #include "Protocol/Mqtt/Inc/mqtt_client.h"
+#include "Network/Ap6181/Inc/bsp_ap6181.h"
 #include "Network/Inc/network_manager.h"
 #include "Network/Inc/network_socket.h"
 #include "Protocol/Platform/Inc/platform_messages.h"
@@ -125,7 +126,12 @@ static const config_t default_config = {
            .feed_watch_dog_interval = 10 * 1000,
            .feed_watch_dog_max_retries = 30},
   .network_monitor = {.probe_host = "192.168.137.110", .probe_port = 1883, .probe_interval_ms = 5 * 60 * 1000},
-  .network_mode = NETWORK_MODE_AUTO,
+  .network_mode =
+#if BSP_HAS_AP6181
+    NETWORK_MODE_WIFI,
+#else
+    NETWORK_MODE_AUTO,
+#endif
   .log = {.level = LOG_LEVEL_DEBUG, .print_prefix = true},
   .md5 = {0},
   .crc = 0,
@@ -268,6 +274,13 @@ static bool config_load_from_storage(void) {
   if (eeprom_read_config_data(&loaded_config, sizeof(loaded_config)) == SUCCESS &&
       config_is_valid_data(&loaded_config)) {
     active_config = loaded_config;
+#if BSP_HAS_AP6181
+    if (active_config.network_mode != NETWORK_MODE_WIFI) {
+      active_config.network_mode = NETWORK_MODE_WIFI;
+      active_config.crc = 0U;
+      (void)config_write_into_eeprom();
+    }
+#endif
     return true;
   }
 
@@ -309,8 +322,14 @@ const char *config_network_mode_name(network_mode_t mode) {
     return "wired";
   case NETWORK_MODE_AIR724UG:
     return "4g";
+  case NETWORK_MODE_WIFI:
+    return "wifi";
   default:
+#if BSP_HAS_AP6181
+    return "wifi";
+#else
     return "auto";
+#endif
   }
 }
 
@@ -445,7 +464,7 @@ static bool config_is_valid_data(const config_t *config_data) {
   if (memcmp(config_data->magic_number, default_config.magic_number, sizeof(config_data->magic_number)) != 0) {
     return false;
   }
-  if (config_data->network_mode > NETWORK_MODE_AIR724UG) {
+  if (config_data->network_mode > NETWORK_MODE_WIFI) {
     return false;
   }
   if (!config_device_table_is_valid(&config_data->devices)) {
@@ -462,7 +481,7 @@ static bool config_v4_is_valid(const config_v4_t *config_data) {
   if (memcmp(config_data->magic_number, default_config.magic_number, sizeof(config_data->magic_number)) != 0) {
     return false;
   }
-  if (config_data->network_mode > NETWORK_MODE_AIR724UG) {
+  if (config_data->network_mode > NETWORK_MODE_WIFI) {
     return false;
   }
   uint16_t crc = GetCRCData((uint8_t *)config_data, CONFIG_V4_CRC_DATA_LEN);
@@ -546,7 +565,12 @@ static void config_migrate_v4(const config_v4_t *saved_config) {
   memcpy(&active_config.ntp, &saved_config->ntp, sizeof(active_config.ntp));
   memcpy(&active_config.loop, &saved_config->loop, sizeof(active_config.loop));
   memcpy(&active_config.network_monitor, &saved_config->network_monitor, sizeof(active_config.network_monitor));
-  active_config.network_mode = saved_config->network_mode;
+  active_config.network_mode =
+#if BSP_HAS_AP6181
+    NETWORK_MODE_WIFI;
+#else
+    saved_config->network_mode;
+#endif
   memset(&active_config.devices, 0, sizeof(active_config.devices));
   memcpy(&active_config.log, &saved_config->log, sizeof(active_config.log));
   memcpy(active_config.md5, saved_config->md5, sizeof(active_config.md5));
@@ -570,12 +594,18 @@ static void config_migrate_legacy(const config_legacy_t *legacy_config) {
   memcpy(&active_config.ntp, &legacy_config->ntp, sizeof(active_config.ntp));
   memcpy(&active_config.loop, &legacy_config->loop, sizeof(active_config.loop));
   memcpy(&active_config.network_monitor, &legacy_config->network_monitor, sizeof(active_config.network_monitor));
-  active_config.network_mode = NETWORK_MODE_AUTO;
+  active_config.network_mode =
+#if BSP_HAS_AP6181
+    NETWORK_MODE_WIFI;
+#else
+    NETWORK_MODE_AUTO;
+#endif
   memset(&active_config.devices, 0, sizeof(active_config.devices));
   memcpy(&active_config.log, &legacy_config->log, sizeof(active_config.log));
   memcpy(active_config.md5, legacy_config->md5, sizeof(active_config.md5));
   active_config.crc = 0U;
-  LOG_INFO("EEPROM legacy config migrated, network_mode=auto devices=empty");
+  LOG_INFO("EEPROM legacy config migrated, network_mode=%s devices=empty",
+           config_network_mode_name(active_config.network_mode));
   if (config_write_into_eeprom() != SUCCESS) {
     LOG_WARNING("EEPROM legacy config migration write failed");
   }
@@ -587,22 +617,51 @@ bool config_parse_network_mode(const char *text, network_mode_t *mode) {
   }
 
   if (strcmp(text, "auto") == 0) {
-    *mode = NETWORK_MODE_AUTO;
+    *mode =
+#if BSP_HAS_AP6181
+      NETWORK_MODE_WIFI;
+#else
+      NETWORK_MODE_AUTO;
+#endif
     return true;
+  }
+  if (strcmp(text, "wifi") == 0 || strcmp(text, "ap6181") == 0) {
+#if BSP_HAS_AP6181
+    *mode = NETWORK_MODE_WIFI;
+    return true;
+#else
+    return false;
+#endif
   }
   if (strcmp(text, "wired") == 0 || strcmp(text, "eth") == 0 || strcmp(text, "ch395q") == 0) {
+#if BSP_HAS_CH395Q
     *mode = NETWORK_MODE_CH395Q;
     return true;
+#else
+    return false;
+#endif
   }
   if (strcmp(text, "4g") == 0 || strcmp(text, "air724ug") == 0 || strcmp(text, "modem") == 0) {
+#if BSP_HAS_AIR724UG
     *mode = NETWORK_MODE_AIR724UG;
     return true;
+#else
+    return false;
+#endif
   }
 
   return false;
 }
 
 ErrorStatus config_apply_network_mode(network_mode_t mode, bool persist) {
+  if (mode > NETWORK_MODE_WIFI) {
+    return ERROR;
+  }
+#if BSP_HAS_AP6181
+  if (mode != NETWORK_MODE_WIFI) {
+    return ERROR;
+  }
+#endif
   active_config.network_mode = mode;
   ErrorStatus status = config_apply_runtime();
   if (status != SUCCESS) {
@@ -1208,7 +1267,7 @@ static void config_print_help(void) {
   LOG_CMD_RESP("shell: help uname uptime free dmesg loglevel [level] reboot");
   LOG_CMD_RESP("auth: logout | passwd root|user <new-password>");
   LOG_CMD_RESP("env: printenv | getenv <key> | setenv <key> <value> | saveenv | env default | config apply|eeprom");
-  LOG_CMD_RESP("net: ifconfig | ip addr | route | nc -vz <host> <port> | netuse auto|wired|4g|ch395q|air724ug");
+  LOG_CMD_RESP("net: ifconfig | ip addr | route | nc -vz <host> <port> | netuse auto|wifi|wired|4g");
   LOG_CMD_RESP("dev: eth status|init [local gw mask]|reset");
   LOG_CMD_RESP("dev: modem status|sim|radio|cell|ip|reset|at <AT>");
   LOG_CMD_RESP("mqtt: mqtt status|maintain|connect|sub|ping|reg|hb|last");
@@ -1367,7 +1426,7 @@ static void config_print_eeprom_status(void) {
 
   uint16_t crc = GetCRCData((uint8_t *)&saved_config, CONFIG_CRC_DATA_LEN);
   bool magic_ok = memcmp(saved_config.magic_number, default_config.magic_number, sizeof(saved_config.magic_number)) == 0;
-  bool valid = magic_ok && saved_config.network_mode <= NETWORK_MODE_AIR724UG &&
+  bool valid = magic_ok && saved_config.network_mode <= NETWORK_MODE_WIFI &&
                config_device_table_is_valid(&saved_config.devices) &&
                (crc == saved_config.crc || saved_config.crc == 0U);
 
@@ -1572,6 +1631,10 @@ static void config_handle_network_cmd(char *args) {
     LOG_CMD_RESP("network.state=%s", config_network_state_str(network_manager_get_state()));
     LOG_CMD_RESP("network.socket_ready=%u", network_socket_active_link_ready() ? 1U : 0U);
     LOG_CMD_RESP("network.probe=%s:%u", active_config.network_monitor.probe_host, active_config.network_monitor.probe_port);
+#if BSP_HAS_AP6181
+    LOG_CMD_RESP("network.wifi=%s enabled=%u irq=%u", bsp_ap6181_pin_map(), bsp_ap6181_is_enabled() ? 1U : 0U,
+                 bsp_ap6181_read_irq() == GPIO_PIN_SET ? 1U : 0U);
+#endif
     LOG_CMD_RESP("network.isolation ch395_rsti_low=%u air_rst_low=%u",
                  bsp_ch395_is_reset_asserted() ? 1U : 0U, bsp_air724_is_reset_asserted() ? 1U : 0U);
   } else if (strcmp(args, "probe") == 0) {
@@ -1581,20 +1644,20 @@ static void config_handle_network_cmd(char *args) {
   } else if (strncmp(args, "use ", 4) == 0) {
     network_mode_t mode = NETWORK_MODE_AUTO;
     if (!config_parse_network_mode(args + 4, &mode)) {
-      LOG_CMD_RESP("usage: network status|probe|use auto|wired|4g|ch395q|air724ug");
+      LOG_CMD_RESP("usage: network status|probe|use auto|wifi|wired|4g");
       return;
     }
     ErrorStatus status = config_apply_network_mode(mode, true);
     LOG_CMD_RESP("network.mode=%s save=%s", config_network_mode_name(mode), status == SUCCESS ? "ok" : "failed");
   } else {
-    LOG_CMD_RESP("usage: network status|probe|use auto|wired|4g|ch395q|air724ug");
+    LOG_CMD_RESP("usage: network status|probe|use auto|wifi|wired|4g");
   }
 }
 
 static void config_handle_netuse_cmd(char *args) {
   network_mode_t mode = NETWORK_MODE_AUTO;
   if (!config_parse_network_mode(args, &mode)) {
-    LOG_CMD_RESP("usage: netuse auto|wired|4g|ch395q|air724ug");
+    LOG_CMD_RESP("usage: netuse auto|wifi|wired|4g");
     return;
   }
 
@@ -2150,6 +2213,8 @@ static const char *config_network_link_str(network_link_t link) {
     return "CH395Q/UART4/CN2";
   case NETWORK_LINK_AIR724UG:
     return "Air724UG/UART4";
+  case NETWORK_LINK_AP6181:
+    return "AP6181 WiFi/SDMMC1";
   default:
     return "unknown";
   }
@@ -2165,6 +2230,8 @@ static const char *config_network_state_str(network_state_t state) {
     return "ch395q_active";
   case NETWORK_STATE_AIR724UG_ACTIVE:
     return "air724ug_active";
+  case NETWORK_STATE_AP6181_ACTIVE:
+    return "ap6181_active";
   default:
     return "unknown";
   }

@@ -12,6 +12,7 @@ typedef enum {
   NETWORK_LINK_NONE = 0,
   NETWORK_LINK_CH395Q,
   NETWORK_LINK_AIR724UG,
+  NETWORK_LINK_AP6181,
 } network_link_t;
 
 typedef enum {
@@ -19,6 +20,7 @@ typedef enum {
   NETWORK_STATE_UNAVAILABLE,
   NETWORK_STATE_CH395Q_ACTIVE,
   NETWORK_STATE_AIR724UG_ACTIVE,
+  NETWORK_STATE_AP6181_ACTIVE,
 } network_state_t;
 
 void network_manager_init(const network_monitor_config_t *config, network_mode_t mode);
@@ -38,6 +40,7 @@ bool network_prepare_ch395q_probe(void);
 bool network_probe_ch395q_port(const char *host, uint16_t port);
 void network_switch_to_ch395q(void);
 void network_switch_to_air724ug(void);
+void network_switch_to_ap6181(void);
 
 #ifdef __cplusplus
 }

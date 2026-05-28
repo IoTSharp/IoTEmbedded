@@ -2,6 +2,7 @@
 
 #include "Modem/Inc/bsp_air724.h"
 #include "Board/Inc/bsp_board.h"
+#include "Network/Ap6181/Inc/bsp_ap6181.h"
 #include "Network/Ch395/Inc/bsp_ch395.h"
 #include "Network/Ch395/Inc/ch395_driver.h"
 #include "Common/Inc/log.h"
@@ -20,6 +21,7 @@ static bool force_probe_requested;
 static network_link_t network_manager_default_link(void);
 static void network_manager_select_ch395q(void);
 static void network_manager_select_air724ug(void);
+static void network_manager_select_ap6181(void);
 static network_mode_t network_manager_normalize_mode(network_mode_t mode);
 static uint32_t network_manager_probe_interval(void);
 
@@ -43,6 +45,8 @@ void network_manager_init(const network_monitor_config_t *config, network_mode_t
     network_manager_select_ch395q();
   } else if (active_mode == NETWORK_MODE_AIR724UG) {
     network_manager_select_air724ug();
+  } else if (active_mode == NETWORK_MODE_WIFI) {
+    network_manager_select_ap6181();
   }
 }
 
@@ -63,6 +67,21 @@ void network_manager_poll(void) {
     }
     return;
   }
+
+  if (active_mode == NETWORK_MODE_WIFI) {
+    if (force_probe_requested || active_link != NETWORK_LINK_AP6181 || current_state != NETWORK_STATE_AP6181_ACTIVE) {
+      force_probe_requested = false;
+      network_manager_select_ap6181();
+    }
+    return;
+  }
+
+#if BSP_HAS_AP6181
+  if (active_link != NETWORK_LINK_AP6181 || current_state != NETWORK_STATE_AP6181_ACTIVE) {
+    network_manager_select_ap6181();
+  }
+  return;
+#endif
 
   uint32_t now = bsp_get_tick_ms();
   uint32_t interval = network_manager_probe_interval();
@@ -104,6 +123,8 @@ void network_manager_set_mode(network_mode_t mode) {
     network_manager_select_ch395q();
   } else if (active_mode == NETWORK_MODE_AIR724UG) {
     network_manager_select_air724ug();
+  } else if (active_mode == NETWORK_MODE_WIFI) {
+    network_manager_select_ap6181();
   } else {
     force_probe_requested = true;
   }
@@ -175,6 +196,20 @@ static void network_manager_select_air724ug(void) {
   }
 }
 
+static void network_manager_select_ap6181(void) {
+  network_socket_close_all();
+#if !BSP_HAS_AP6181
+  active_link = NETWORK_LINK_NONE;
+  current_state = NETWORK_STATE_UNAVAILABLE;
+  LOG_WARNING("AP6181 WiFi unavailable on this board profile");
+  return;
+#endif
+  network_switch_to_ap6181();
+  active_link = NETWORK_LINK_AP6181;
+  current_state = NETWORK_STATE_AP6181_ACTIVE;
+  LOG_INFO("network switched to AP6181 WiFi/SDMMC1; wired/4G fallback disabled");
+}
+
 static network_mode_t network_manager_normalize_mode(network_mode_t mode) {
   switch (mode) {
   case NETWORK_MODE_CH395Q:
@@ -189,14 +224,26 @@ static network_mode_t network_manager_normalize_mode(network_mode_t mode) {
 #else
     return NETWORK_MODE_AUTO;
 #endif
+  case NETWORK_MODE_WIFI:
+#if BSP_HAS_AP6181
+    return mode;
+#else
+    return NETWORK_MODE_AUTO;
+#endif
   case NETWORK_MODE_AUTO:
   default:
+#if BSP_HAS_AP6181
+    return NETWORK_MODE_WIFI;
+#else
     return NETWORK_MODE_AUTO;
+#endif
   }
 }
 
 static network_link_t network_manager_default_link(void) {
-#if BSP_HAS_CH395Q
+#if BSP_HAS_AP6181
+  return NETWORK_LINK_AP6181;
+#elif BSP_HAS_CH395Q
   return NETWORK_LINK_CH395Q;
 #elif BSP_HAS_AIR724UG
   return NETWORK_LINK_AIR724UG;
@@ -240,5 +287,12 @@ __attribute__((weak)) void network_switch_to_air724ug(void) {
   bsp_ch395_assert_reset();
   bsp_air724_release_reset();
   (void)bsp_air724_read_netstate();
+#endif
+}
+
+__attribute__((weak)) void network_switch_to_ap6181(void) {
+#if BSP_HAS_AP6181
+  bsp_ap6181_prepare_pins();
+  bsp_ap6181_enable();
 #endif
 }

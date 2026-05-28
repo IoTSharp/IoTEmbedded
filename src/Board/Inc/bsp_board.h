@@ -125,6 +125,23 @@ extern RTC_HandleTypeDef hrtc;
 #define BSP_AIR4G_RST_GPIO_Port      GPIOE
 #define BSP_AIR4G_RST_Pin            GPIO_PIN_2
 
+#define BSP_AP6181_D0_GPIO_Port      GPIOC
+#define BSP_AP6181_D0_Pin            GPIO_PIN_8
+#define BSP_AP6181_D1_GPIO_Port      GPIOC
+#define BSP_AP6181_D1_Pin            GPIO_PIN_9
+#define BSP_AP6181_D2_GPIO_Port      GPIOC
+#define BSP_AP6181_D2_Pin            GPIO_PIN_10
+#define BSP_AP6181_D3_GPIO_Port      GPIOC
+#define BSP_AP6181_D3_Pin            GPIO_PIN_11
+#define BSP_AP6181_CLK_GPIO_Port     GPIOC
+#define BSP_AP6181_CLK_Pin           GPIO_PIN_12
+#define BSP_AP6181_CMD_GPIO_Port     GPIOD
+#define BSP_AP6181_CMD_Pin           GPIO_PIN_2
+#define BSP_AP6181_IRQ_GPIO_Port     GPIOC
+#define BSP_AP6181_IRQ_Pin           GPIO_PIN_5
+#define BSP_AP6181_EN_GPIO_Port      GPIOD
+#define BSP_AP6181_EN_Pin            GPIO_PIN_1
+
 #define BSP_AT24C_7BIT_ADDRESS 0x50U
 
 void bsp_board_init(void);

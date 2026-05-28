@@ -16,7 +16,7 @@ The board inventory is based on the RT-Thread Studio BSP
 
 | Resource | Interface | Pins | Status |
 | --- | --- | --- | --- |
-| AP6181 WiFi | SDMMC1 + GPIO | PC8/PC9/PC10/PC11/PC12/PD2, IRQ PC5, EN PD1 | IOC mapped, driver pending |
+| AP6181 WiFi | SDMMC1 + GPIO | PC8/PC9/PC10/PC11/PC12/PD2, IRQ PC5, EN PD1 | board pins forced to SDMMC1, socket driver pending |
 | W25Q128 flash | QUADSPI | PE10/PE11/PE12/PE13/PE14/PE15 | IOC mapped, storage driver pending |
 | TF card | SPI1 + GPIO | PA5/PA6/PA7, CS PC3 | IOC mapped, FatFs driver pending |
 | 1.3 inch TFT LCD | SPI3 + GPIO | PB3/PB5, CS PD7, DC PB4, RES PB6, PWR PB7 | ST7789 driver ready; SPI3 is initialized in `Board/Pandora` because this CubeMX import does not generate `hspi3` |
@@ -28,11 +28,18 @@ The board inventory is based on the RT-Thread Studio BSP
 | Keys | GPIO input | PD10/PD9/PD8/PC13 | IOC mapped, debounce pending |
 | RS485 expansion | USART2 + GPIO | PA2/PA3, RE/DE PA12 | IOC mapped, external transceiver/header review needed |
 
-Pandora's onboard network path is AP6181 over SDMMC1. The older UART4/UART5
-CH395Q/Air724UG path conflicts with SDMMC1 pins PC10/PC11/PC12/PD2 and is not
-enabled for this board profile. The legacy AT24C EEPROM storage path is also not
-confirmed on Pandora; use W25Q128 QSPI flash and TF card as the planned storage
-targets.
+Pandora's onboard network path is AP6181 over SDMMC1. The firmware forces
+`network_mode=wifi` for this board and binds MQTT only through the
+`AP6181 WiFi/SDMMC1` socket adapter. Until the AP6181 SDIO/WICED socket driver is
+implemented, MQTT must fail with the WiFi adapter not ready; it must not fall
+back to CH395Q Ethernet, Air724UG 4G, or any UART-to-Ethernet path.
+
+The older UART4/UART5 CH395Q/Air724UG path conflicts with SDMMC1 pins
+PC10/PC11/PC12/PD2 and is not enabled for this board profile. `bsp_board_init()`
+reclaims those pins for AP6181 SDMMC1 after platform init so the active wiring is
+PC8 D0, PC9 D1, PC10 D2, PC11 D3, PC12 CLK, PD2 CMD, PC5 IRQ, and PD1 EN. The
+legacy AT24C EEPROM storage path is also not confirmed on Pandora; use W25Q128
+QSPI flash and TF card as the planned storage targets.
 
 USART2 is kept as an RS485-capable expansion path for common Modbus devices, but
 it is not the default network path on Pandora.
@@ -50,7 +57,8 @@ stays in `Board/Pandora`.
 3. Bring up storage buses: W25Q128 QSPI, then TF card over SPI1.
 4. Extend display support with text rendering or a framebuffer if `PRINT`/`PAINT` semantics are needed.
 5. Bring up I2C sensors: ICM-20608 first, then AHT10 after shared SDA review.
-6. Bring up AP6181 SDIO WiFi and bind it into the network socket abstraction.
+6. Implement the AP6181 SDIO/WICED socket driver behind the existing
+   `Network/Ap6181` and `network_socket_ap6181` adapter.
 7. Bring up ES8388 audio after confirming the amplifier-enable pin assignment.
 
 The CMake project follows the same structure as the F103 reference platform:

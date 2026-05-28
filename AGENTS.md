@@ -29,7 +29,7 @@ src/<Module>[/<SubModule>]/
 | `Display/` | 显示抽象、显示驱动适配（如 ST7789） |
 | `Interpreter/` | BASIC 核心解释器、运行封装、脚本加载适配 |
 | `Modem/` | 模组（Air724 等） |
-| `Network/` | 网络管理、Socket、时间同步；`Network/Ch395/` 为 CH395 子模块 |
+| `Network/` | 网络管理、Socket、时间同步；`Network/Ap6181/` 为 Pandora AP6181 WiFi 板级适配，`Network/Ch395/` 为 CH395 子模块 |
 | `Protocol/Modbus/`, `Protocol/Mqtt/`, `Protocol/Platform/` | 协议层 |
 | `Storage/` | EEPROM 等存储抽象 |
 | `Platform/stm32/...` | **CubeMX 生成代码，禁止重排目录结构**（main.c 的 USER CODE 区允许编辑） |
