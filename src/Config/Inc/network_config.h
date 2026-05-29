@@ -13,6 +13,9 @@ extern "C" {
 #define MQTT_PASSWORD_BUF_SIZE  33
 #define NTP_SERVER_IP_BUF_SIZE  64
 #define NETWORK_PROBE_HOST_BUF_SIZE 64
+#define NETWORK_WIFI_SSID_BUF_SIZE 33
+#define NETWORK_WIFI_PASSWORD_BUF_SIZE 65
+#define NETWORK_WIFI_IP_BUF_SIZE 64
 
 /** 网络工作模式：auto 保留主备自动切换，wired/4G 用于现场强制固定链路并写入 EEPROM。 */
 typedef enum {
@@ -21,6 +24,11 @@ typedef enum {
   NETWORK_MODE_AIR724UG,
   NETWORK_MODE_WIFI,
 } network_mode_t;
+
+typedef enum {
+  NETWORK_WIFI_IP_MODE_DHCP = 0,
+  NETWORK_WIFI_IP_MODE_STATIC,
+} network_wifi_ip_mode_t;
 
 typedef struct {
   char ip[MQTT_SERVER_IP_BUF_SIZE];
@@ -36,6 +44,16 @@ typedef struct {
   char mask_ip[MQTT_SERVER_IP_BUF_SIZE];
   u16 local_port;
 } mqtt_config_t;
+
+typedef struct {
+  char ssid[NETWORK_WIFI_SSID_BUF_SIZE];
+  char password[NETWORK_WIFI_PASSWORD_BUF_SIZE];
+  network_wifi_ip_mode_t ip_mode;
+  char local_ip[NETWORK_WIFI_IP_BUF_SIZE];
+  char gateway_ip[NETWORK_WIFI_IP_BUF_SIZE];
+  char mask_ip[NETWORK_WIFI_IP_BUF_SIZE];
+  char dns_ip[NETWORK_WIFI_IP_BUF_SIZE];
+} network_wifi_config_t;
 
 typedef struct {
   char ip[NTP_SERVER_IP_BUF_SIZE];

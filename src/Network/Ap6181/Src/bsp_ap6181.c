@@ -47,6 +47,28 @@ void bsp_ap6181_prepare_pins(void) {
 #endif
 }
 
+void bsp_ap6181_prepare_irq_interrupt(void) {
+#if BSP_HAS_AP6181
+  GPIO_InitTypeDef gpio = {0};
+
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+#if defined(__HAL_RCC_SYSCFG_CLK_ENABLE)
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
+#endif
+
+  gpio.Pin = BSP_AP6181_IRQ_Pin;
+  gpio.Mode = GPIO_MODE_IT_RISING_FALLING;
+  gpio.Pull = GPIO_PULLUP;
+  gpio.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(BSP_AP6181_IRQ_GPIO_Port, &gpio);
+
+#if defined(EXTI9_5_IRQn)
+  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 5U, 0U);
+  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+#endif
+#endif
+}
+
 void bsp_ap6181_enable(void) {
 #if BSP_HAS_AP6181
   HAL_GPIO_WritePin(BSP_AP6181_EN_GPIO_Port, BSP_AP6181_EN_Pin, GPIO_PIN_SET);

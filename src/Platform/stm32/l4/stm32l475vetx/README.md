@@ -16,7 +16,7 @@ The board inventory is based on the RT-Thread Studio BSP
 
 | Resource | Interface | Pins | Status |
 | --- | --- | --- | --- |
-| AP6181 WiFi | SDMMC1 + GPIO | PC8/PC9/PC10/PC11/PC12/PD2, IRQ PC5, EN PD1 | board pins forced to SDMMC1, socket driver pending |
+| AP6181 WiFi | SDMMC1 + GPIO | PC8/PC9/PC10/PC11/PC12/PD2, IRQ PC5, EN PD1 | board pins forced to SDMMC1, socket adapter wired to WiFi backend |
 | W25Q128 flash | QUADSPI | PE10/PE11/PE12/PE13/PE14/PE15 | IOC mapped, storage driver pending |
 | TF card | SPI1 + GPIO | PA5/PA6/PA7, CS PC3 | IOC mapped, FatFs driver pending |
 | 1.3 inch TFT LCD | SPI3 + GPIO | PB3/PB5, CS PD7, DC PB4, RES PB6, PWR PB7 | ST7789 driver ready; SPI3 is initialized in `Board/Pandora` because this CubeMX import does not generate `hspi3` |
@@ -30,9 +30,20 @@ The board inventory is based on the RT-Thread Studio BSP
 
 Pandora's onboard network path is AP6181 over SDMMC1. The firmware forces
 `network_mode=wifi` for this board and binds MQTT only through the
-`AP6181 WiFi/SDMMC1` socket adapter. Until the AP6181 SDIO/WICED socket driver is
-implemented, MQTT must fail with the WiFi adapter not ready; it must not fall
-back to CH395Q Ethernet, Air724UG 4G, or any UART-to-Ethernet path.
+`AP6181 WiFi/SDMMC1` socket adapter. The adapter now owns the full
+`is_ready/open/send/recv/close` chain used by MQTT and reports explicit AP6181
+status values such as `config_missing`, `backend_missing`, `ip_down`, and
+`ready`; it must not fall back to CH395Q Ethernet, Air724UG 4G, or any
+UART-to-Ethernet path.
+
+The AP6181 implementation follows the old Pandora reference flow from the
+board资料: initialize the AP6181 WICED/SDIO layer, set `wlan0` to station mode,
+connect with the configured SSID/password, then wait for the WiFi-ready/IP-ready
+state before opening sockets. In this repository that backend is exposed through
+`Network/Ap6181`; the default backend binds to the old RT-WLAN/SAL symbols when
+they are linked. If the old AP6181 RT-WLAN/SAL/lwIP backend is not present, MQTT
+now stops with `backend_missing` instead of a hard-coded, ambiguous WiFi-not-ready
+failure.
 
 The older UART4/UART5 CH395Q/Air724UG path conflicts with SDMMC1 pins
 PC10/PC11/PC12/PD2 and is not enabled for this board profile. `bsp_board_init()`
@@ -57,8 +68,8 @@ stays in `Board/Pandora`.
 3. Bring up storage buses: W25Q128 QSPI, then TF card over SPI1.
 4. Extend display support with text rendering or a framebuffer if `PRINT`/`PAINT` semantics are needed.
 5. Bring up I2C sensors: ICM-20608 first, then AHT10 after shared SDA review.
-6. Implement the AP6181 SDIO/WICED socket driver behind the existing
-   `Network/Ap6181` and `network_socket_ap6181` adapter.
+6. Port or link the AP6181 RT-WLAN/SAL/lwIP backend behind `Network/Ap6181` so
+   the socket adapter can move from `backend_missing` to `ready` on hardware.
 7. Bring up ES8388 audio after confirming the amplifier-enable pin assignment.
 
 The CMake project follows the same structure as the F103 reference platform:

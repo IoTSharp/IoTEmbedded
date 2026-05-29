@@ -16,6 +16,7 @@
 #include "Protocol/Modbus/Inc/modbus_api.h"
 #include "Application/Inc/modbus_test.h"
 #include "Protocol/Mqtt/Inc/mqtt_client.h"
+#include "Network/Ap6181/Inc/ap6181_socket.h"
 #include "Network/Ap6181/Inc/bsp_ap6181.h"
 #include "Network/Inc/network_manager.h"
 #include "Protocol/Platform/Inc/platform_messages.h"
@@ -79,7 +80,10 @@ void app_init(void) {
 #if BSP_HAS_AP6181
   LOG_INFO("Network primary: AP6181 WiFi/SDMMC1");
   LOG_INFO("Network WiFi pins: %s", bsp_ap6181_pin_map());
-  LOG_WARNING("AP6181 WiFi socket driver pending; MQTT must not use CH395Q/4G fallback on Pandora");
+  LOG_INFO("Network WiFi config: ssid=%s password_set=%u", ap6181_socket_configured_ssid(),
+           active_config.wifi.password[0] == '\0' ? 0U : 1U);
+  LOG_INFO("AP6181 socket backend=%s status=%s detail=%s", ap6181_socket_backend_name(),
+           ap6181_socket_status_name(ap6181_socket_get_status()), ap6181_socket_status_detail());
 #elif BSP_HAS_CH395Q || BSP_HAS_AIR724UG
   if (network_mode == NETWORK_MODE_AIR724UG) {
     LOG_INFO("Network primary: Air724UG 4G on UART4");

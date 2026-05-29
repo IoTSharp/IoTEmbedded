@@ -94,6 +94,7 @@ target_sources(STM32L475VETX PRIVATE
 	${SRC_ROOT}/Network/Src/network_socket_ch395.c
 	${SRC_ROOT}/Network/Src/network_time.c
 	# Network / AP6181
+	${SRC_ROOT}/Network/Ap6181/Src/ap6181_socket.c
 	${SRC_ROOT}/Network/Ap6181/Src/bsp_ap6181.c
 	# Network / CH395
 	${SRC_ROOT}/Network/Ch395/Src/bsp_ch395.c

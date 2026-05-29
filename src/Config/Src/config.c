@@ -15,6 +15,7 @@
 #include "Protocol/Modbus/Inc/modbus_core_crc.h"
 #include "Protocol/Modbus/Inc/modbus_core_master.h"
 #include "Protocol/Mqtt/Inc/mqtt_client.h"
+#include "Network/Ap6181/Inc/ap6181_socket.h"
 #include "Network/Ap6181/Inc/bsp_ap6181.h"
 #include "Network/Inc/network_manager.h"
 #include "Network/Inc/network_socket.h"
@@ -132,10 +133,30 @@ static const config_t default_config = {
 #else
     NETWORK_MODE_AUTO,
 #endif
+  .wifi = {.ssid = "", .password = "", .ip_mode = NETWORK_WIFI_IP_MODE_DHCP, .local_ip = "", .gateway_ip = "",
+           .mask_ip = "", .dns_ip = ""},
   .log = {.level = LOG_LEVEL_DEBUG, .print_prefix = true},
   .md5 = {0},
   .crc = 0,
 };
+
+/*
+ * v0.0.5 的 EEPROM 记录已有 devices 字段但还没有 WiFi 凭据字段；升级后保留现场
+ * MQTT/IP/探测/设备表配置，只把 WiFi 配置补成默认空值。
+ */
+typedef struct {
+  char magic_number[MAGIC_NUMBER_SIZE];
+  config_auth_t auth;
+  mqtt_config_t mqtt;
+  ntp_config_t ntp;
+  loop_config_t loop;
+  network_monitor_config_t network_monitor;
+  network_mode_t network_mode;
+  config_device_table_t devices;
+  log_config_t log;
+  char md5[MD5_STR_LEN + 1];
+  u16 crc;
+} config_v5_t;
 
 /*
  * v0.0.4 之前的 EEPROM 记录没有 devices 字段，升级后先按旧结构读回并迁移，
@@ -171,6 +192,7 @@ typedef struct {
 } config_legacy_t;
 
 /* CRC 仍然只覆盖 crc 字段之前的数据。旧结构用于兼容历史 EEPROM 记录。 */
+#define CONFIG_V5_CRC_DATA_LEN ((uint16_t)offsetof(config_v5_t, crc))
 #define CONFIG_V4_CRC_DATA_LEN ((uint16_t)offsetof(config_v4_t, crc))
 #define CONFIG_LEGACY_CRC_DATA_LEN ((uint16_t)offsetof(config_legacy_t, crc))
 
@@ -244,12 +266,17 @@ static void config_modbus_print_registers(const char *prefix, const char *kind, 
 static const char *config_network_link_str(network_link_t link);
 static const char *config_network_state_str(network_state_t state);
 static const char *config_mqtt_state_str(mqtt_client_state_t state);
+static const char *config_wifi_ip_mode_str(network_wifi_ip_mode_t mode);
+static bool config_parse_wifi_ip_mode(const char *text, network_wifi_ip_mode_t *mode);
 static bool config_is_valid_data(const config_t *config_data);
+static bool config_v5_is_valid(const config_v5_t *config_data);
 static bool config_v4_is_valid(const config_v4_t *config_data);
 static bool config_legacy_is_valid(const config_legacy_t *config_data);
 static bool config_device_table_is_valid(const config_device_table_t *devices);
+static bool config_wifi_is_valid(const network_wifi_config_t *wifi);
 static bool config_device_table_has_enabled_entries(void);
 static bool config_device_table_allows(uint16_t service_id, uint16_t manufacture_model, uint8_t slave_addr);
+static void config_migrate_v5(const config_v5_t *saved_config);
 static void config_migrate_v4(const config_v4_t *saved_config);
 static void config_migrate_legacy(const config_legacy_t *legacy_config);
 ErrorStatus config_apply_runtime(void);
@@ -267,6 +294,9 @@ void config_init(void) {
 #else
   config_reset_to_default();
 #endif
+#if BSP_HAS_AP6181
+  ap6181_socket_configure(&active_config.wifi);
+#endif
 }
 
 static bool config_load_from_storage(void) {
@@ -281,6 +311,12 @@ static bool config_load_from_storage(void) {
       (void)config_write_into_eeprom();
     }
 #endif
+    return true;
+  }
+
+  config_v5_t v5_config = {{0}};
+  if (eeprom_read_config_data(&v5_config, sizeof(v5_config)) == SUCCESS && config_v5_is_valid(&v5_config)) {
+    config_migrate_v5(&v5_config);
     return true;
   }
 
@@ -305,6 +341,9 @@ void config_reset_to_default(void) {
 }
 
 ErrorStatus config_apply_runtime(void) {
+#if BSP_HAS_AP6181
+  ap6181_socket_configure(&active_config.wifi);
+#endif
   network_manager_set_mode(active_config.network_mode);
   network_manager_poll();
   return SUCCESS;
@@ -470,7 +509,27 @@ static bool config_is_valid_data(const config_t *config_data) {
   if (!config_device_table_is_valid(&config_data->devices)) {
     return false;
   }
+  if (!config_wifi_is_valid(&config_data->wifi)) {
+    return false;
+  }
   uint16_t crc = GetCRCData((uint8_t *)config_data, CONFIG_CRC_DATA_LEN);
+  return crc == config_data->crc || config_data->crc == 0U;
+}
+
+static bool config_v5_is_valid(const config_v5_t *config_data) {
+  if (config_data == NULL) {
+    return false;
+  }
+  if (memcmp(config_data->magic_number, default_config.magic_number, sizeof(config_data->magic_number)) != 0) {
+    return false;
+  }
+  if (config_data->network_mode > NETWORK_MODE_WIFI) {
+    return false;
+  }
+  if (!config_device_table_is_valid(&config_data->devices)) {
+    return false;
+  }
+  uint16_t crc = GetCRCData((uint8_t *)config_data, CONFIG_V5_CRC_DATA_LEN);
   return crc == config_data->crc || config_data->crc == 0U;
 }
 
@@ -517,6 +576,10 @@ static bool config_device_table_is_valid(const config_device_table_t *devices) {
   return true;
 }
 
+static bool config_wifi_is_valid(const network_wifi_config_t *wifi) {
+  return wifi != NULL && wifi->ip_mode <= NETWORK_WIFI_IP_MODE_STATIC;
+}
+
 static bool config_device_table_has_enabled_entries(void) {
   for (uint8_t index = 0U; index < active_config.devices.count; index++) {
     const config_device_entry_t *entry = &active_config.devices.entries[index];
@@ -552,6 +615,36 @@ bool config_saved_device_table_allows(uint16_t service_id, uint16_t manufacture_
   return config_device_table_allows(service_id, manufacture_model, slave_addr);
 }
 
+static void config_migrate_v5(const config_v5_t *saved_config) {
+  if (saved_config == NULL) {
+    config_reset_to_default();
+    return;
+  }
+
+  memset(&active_config, 0, sizeof(active_config));
+  memcpy(active_config.magic_number, saved_config->magic_number, sizeof(active_config.magic_number));
+  memcpy(&active_config.auth, &saved_config->auth, sizeof(active_config.auth));
+  memcpy(&active_config.mqtt, &saved_config->mqtt, sizeof(active_config.mqtt));
+  memcpy(&active_config.ntp, &saved_config->ntp, sizeof(active_config.ntp));
+  memcpy(&active_config.loop, &saved_config->loop, sizeof(active_config.loop));
+  memcpy(&active_config.network_monitor, &saved_config->network_monitor, sizeof(active_config.network_monitor));
+  active_config.network_mode =
+#if BSP_HAS_AP6181
+    NETWORK_MODE_WIFI;
+#else
+    saved_config->network_mode;
+#endif
+  memcpy(&active_config.wifi, &default_config.wifi, sizeof(active_config.wifi));
+  memcpy(&active_config.devices, &saved_config->devices, sizeof(active_config.devices));
+  memcpy(&active_config.log, &saved_config->log, sizeof(active_config.log));
+  memcpy(active_config.md5, saved_config->md5, sizeof(active_config.md5));
+  active_config.crc = 0U;
+  LOG_INFO("EEPROM config migrated, WiFi config defaulted to empty");
+  if (config_write_into_eeprom() != SUCCESS) {
+    LOG_WARNING("EEPROM config migration write failed");
+  }
+}
+
 static void config_migrate_v4(const config_v4_t *saved_config) {
   if (saved_config == NULL) {
     config_reset_to_default();
@@ -571,6 +664,7 @@ static void config_migrate_v4(const config_v4_t *saved_config) {
 #else
     saved_config->network_mode;
 #endif
+  memcpy(&active_config.wifi, &default_config.wifi, sizeof(active_config.wifi));
   memset(&active_config.devices, 0, sizeof(active_config.devices));
   memcpy(&active_config.log, &saved_config->log, sizeof(active_config.log));
   memcpy(active_config.md5, saved_config->md5, sizeof(active_config.md5));
@@ -600,6 +694,7 @@ static void config_migrate_legacy(const config_legacy_t *legacy_config) {
 #else
     NETWORK_MODE_AUTO;
 #endif
+  memcpy(&active_config.wifi, &default_config.wifi, sizeof(active_config.wifi));
   memset(&active_config.devices, 0, sizeof(active_config.devices));
   memcpy(&active_config.log, &legacy_config->log, sizeof(active_config.log));
   memcpy(active_config.md5, legacy_config->md5, sizeof(active_config.md5));
@@ -1089,6 +1184,20 @@ ErrorStatus config_get_value(const char *key, char *buf, size_t buf_size) {
     snprintf(buf, buf_size, "%lu", active_config.network_monitor.probe_interval_ms);
   } else if (strcmp(key, "network_mode") == 0) {
     snprintf(buf, buf_size, "%s", config_network_mode_name(active_config.network_mode));
+  } else if (strcmp(key, "wifi_ssid") == 0) {
+    snprintf(buf, buf_size, "%s", active_config.wifi.ssid);
+  } else if (strcmp(key, "wifi_password_set") == 0) {
+    snprintf(buf, buf_size, "%u", active_config.wifi.password[0] == '\0' ? 0U : 1U);
+  } else if (strcmp(key, "wifi_ip_mode") == 0) {
+    snprintf(buf, buf_size, "%s", config_wifi_ip_mode_str(active_config.wifi.ip_mode));
+  } else if (strcmp(key, "wifi_local_ip") == 0) {
+    snprintf(buf, buf_size, "%s", active_config.wifi.local_ip);
+  } else if (strcmp(key, "wifi_gateway") == 0) {
+    snprintf(buf, buf_size, "%s", active_config.wifi.gateway_ip);
+  } else if (strcmp(key, "wifi_mask") == 0) {
+    snprintf(buf, buf_size, "%s", active_config.wifi.mask_ip);
+  } else if (strcmp(key, "wifi_dns") == 0) {
+    snprintf(buf, buf_size, "%s", active_config.wifi.dns_ip);
   } else if (strcmp(key, "main_loop_interval") == 0) {
     snprintf(buf, buf_size, "%lu", active_config.loop.main_loop_interval);
   } else if (strcmp(key, "report_devices_data_interval") == 0) {
@@ -1156,6 +1265,25 @@ ErrorStatus config_set_value(const char *key, const char *value) {
     }
     active_config.network_mode = mode;
     return SUCCESS;
+  } else if (strcmp(key, "wifi_ssid") == 0) {
+    return config_set_string(active_config.wifi.ssid, sizeof(active_config.wifi.ssid), value);
+  } else if (strcmp(key, "wifi_password") == 0) {
+    return config_set_string(active_config.wifi.password, sizeof(active_config.wifi.password), value);
+  } else if (strcmp(key, "wifi_ip_mode") == 0) {
+    network_wifi_ip_mode_t mode = NETWORK_WIFI_IP_MODE_DHCP;
+    if (!config_parse_wifi_ip_mode(value, &mode)) {
+      return ERROR;
+    }
+    active_config.wifi.ip_mode = mode;
+    return SUCCESS;
+  } else if (strcmp(key, "wifi_local_ip") == 0) {
+    return config_set_string(active_config.wifi.local_ip, sizeof(active_config.wifi.local_ip), value);
+  } else if (strcmp(key, "wifi_gateway") == 0) {
+    return config_set_string(active_config.wifi.gateway_ip, sizeof(active_config.wifi.gateway_ip), value);
+  } else if (strcmp(key, "wifi_mask") == 0) {
+    return config_set_string(active_config.wifi.mask_ip, sizeof(active_config.wifi.mask_ip), value);
+  } else if (strcmp(key, "wifi_dns") == 0) {
+    return config_set_string(active_config.wifi.dns_ip, sizeof(active_config.wifi.dns_ip), value);
   } else if (strcmp(key, "main_loop_interval") == 0) {
     return config_set_u32(&active_config.loop.main_loop_interval, value);
   } else if (strcmp(key, "report_devices_data_interval") == 0) {
@@ -1284,6 +1412,7 @@ static void config_print_help(void) {
   LOG_CMD_RESP("keys: version log_level device_uid mqtt_ip mqtt_port mqtt_local_port mqtt_user mqtt_client_id");
   LOG_CMD_RESP("keys: mqtt_password mqtt_password_set mqtt_keepalive mqtt_sub_qos mqtt_pub_qos local_ip gateway mask");
   LOG_CMD_RESP("keys: probe_host probe_port probe_interval_ms network_mode main_loop_interval report_devices_data_interval");
+  LOG_CMD_RESP("keys: wifi_ssid wifi_password wifi_password_set wifi_ip_mode wifi_local_ip wifi_gateway wifi_mask wifi_dns");
   LOG_CMD_RESP("keys: feed_watch_dog_interval feed_watch_dog_max_retries");
   LOG_CMD_RESP("auth: root can modify config/control hardware; user can only view status/config");
 }
@@ -1328,6 +1457,13 @@ static void config_print_status(void) {
                active_config.network_monitor.probe_port, active_config.network_monitor.probe_interval_ms);
   LOG_CMD_RESP("mqtt=%s:%u local=%s:%u", active_config.mqtt.ip, active_config.mqtt.port, active_config.mqtt.local_ip,
                active_config.mqtt.local_port);
+#if BSP_HAS_AP6181
+  LOG_CMD_RESP("wifi.ssid=%s password_set=%u ip_mode=%s", active_config.wifi.ssid,
+               active_config.wifi.password[0] == '\0' ? 0U : 1U, config_wifi_ip_mode_str(active_config.wifi.ip_mode));
+  LOG_CMD_RESP("wifi.status=%s detail=%s backend=%s",
+               ap6181_socket_status_name(ap6181_socket_get_status()), ap6181_socket_status_detail(),
+               ap6181_socket_backend_name());
+#endif
   LOG_CMD_RESP("time.ntp=disabled");
   ch395_board_status_t ch395_status = ch395_board_get_status();
   LOG_CMD_RESP("ch395.present=%u ver=0x%02X phy=0x%02X init=0x%02X", ch395_status.present ? 1U : 0U,
@@ -1372,6 +1508,13 @@ static void config_print_all(void) {
   LOG_CMD_RESP("probe_port=%u", active_config.network_monitor.probe_port);
   LOG_CMD_RESP("probe_interval_ms=%lu", active_config.network_monitor.probe_interval_ms);
   LOG_CMD_RESP("network_mode=%s", config_network_mode_name(active_config.network_mode));
+  LOG_CMD_RESP("wifi_ssid=%s", active_config.wifi.ssid);
+  LOG_CMD_RESP("wifi_password_set=%u", active_config.wifi.password[0] == '\0' ? 0U : 1U);
+  LOG_CMD_RESP("wifi_ip_mode=%s", config_wifi_ip_mode_str(active_config.wifi.ip_mode));
+  LOG_CMD_RESP("wifi_local_ip=%s", active_config.wifi.local_ip);
+  LOG_CMD_RESP("wifi_gateway=%s", active_config.wifi.gateway_ip);
+  LOG_CMD_RESP("wifi_mask=%s", active_config.wifi.mask_ip);
+  LOG_CMD_RESP("wifi_dns=%s", active_config.wifi.dns_ip);
   LOG_CMD_RESP("device_count=%u", active_config.devices.count);
   LOG_CMD_RESP("main_loop_interval=%lu", active_config.loop.main_loop_interval);
   LOG_CMD_RESP("report_devices_data_interval=%lu", active_config.loop.report_devices_data_interval);
@@ -1427,7 +1570,7 @@ static void config_print_eeprom_status(void) {
   uint16_t crc = GetCRCData((uint8_t *)&saved_config, CONFIG_CRC_DATA_LEN);
   bool magic_ok = memcmp(saved_config.magic_number, default_config.magic_number, sizeof(saved_config.magic_number)) == 0;
   bool valid = magic_ok && saved_config.network_mode <= NETWORK_MODE_WIFI &&
-               config_device_table_is_valid(&saved_config.devices) &&
+               config_device_table_is_valid(&saved_config.devices) && config_wifi_is_valid(&saved_config.wifi) &&
                (crc == saved_config.crc || saved_config.crc == 0U);
 
   /* 只打印安全的诊断字段，不输出账号密码等敏感配置。 */
@@ -1634,6 +1777,12 @@ static void config_handle_network_cmd(char *args) {
 #if BSP_HAS_AP6181
     LOG_CMD_RESP("network.wifi=%s enabled=%u irq=%u", bsp_ap6181_pin_map(), bsp_ap6181_is_enabled() ? 1U : 0U,
                  bsp_ap6181_read_irq() == GPIO_PIN_SET ? 1U : 0U);
+    LOG_CMD_RESP("network.wifi_cfg ssid=%s password_set=%u ip_mode=%s", active_config.wifi.ssid,
+                 active_config.wifi.password[0] == '\0' ? 0U : 1U,
+                 config_wifi_ip_mode_str(active_config.wifi.ip_mode));
+    LOG_CMD_RESP("network.wifi_status=%s detail=%s backend=%s",
+                 ap6181_socket_status_name(ap6181_socket_get_status()), ap6181_socket_status_detail(),
+                 ap6181_socket_backend_name());
 #endif
     LOG_CMD_RESP("network.isolation ch395_rsti_low=%u air_rst_low=%u",
                  bsp_ch395_is_reset_asserted() ? 1U : 0U, bsp_air724_is_reset_asserted() ? 1U : 0U);
@@ -2250,4 +2399,30 @@ static const char *config_mqtt_state_str(mqtt_client_state_t state) {
   default:
     return "unknown";
   }
+}
+
+static const char *config_wifi_ip_mode_str(network_wifi_ip_mode_t mode) {
+  switch (mode) {
+  case NETWORK_WIFI_IP_MODE_DHCP:
+    return "dhcp";
+  case NETWORK_WIFI_IP_MODE_STATIC:
+    return "static";
+  default:
+    return "unknown";
+  }
+}
+
+static bool config_parse_wifi_ip_mode(const char *text, network_wifi_ip_mode_t *mode) {
+  if (text == NULL || mode == NULL) {
+    return false;
+  }
+  if (strcmp(text, "dhcp") == 0 || strcmp(text, "auto") == 0) {
+    *mode = NETWORK_WIFI_IP_MODE_DHCP;
+    return true;
+  }
+  if (strcmp(text, "static") == 0 || strcmp(text, "manual") == 0) {
+    *mode = NETWORK_WIFI_IP_MODE_STATIC;
+    return true;
+  }
+  return false;
 }

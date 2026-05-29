@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#define CONFIG_VERSION "v0.0.5-device-table"
+#define CONFIG_VERSION "v0.0.6-ap6181-wifi"
 #define MAGIC_NUMBER_SIZE 4
 #define CONFIG_CMD_RECV_BUF_SIZE 256
 #define CONFIG_AUTH_PASSWORD_BUF_SIZE 32
@@ -50,6 +50,7 @@ typedef struct {
   loop_config_t loop;
   network_monitor_config_t network_monitor;
   network_mode_t network_mode;
+  network_wifi_config_t wifi;
   config_device_table_t devices;
   log_config_t log;
   char md5[MD5_STR_LEN + 1];

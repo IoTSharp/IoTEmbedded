@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 void bsp_ap6181_prepare_pins(void);
+void bsp_ap6181_prepare_irq_interrupt(void);
 void bsp_ap6181_enable(void);
 void bsp_ap6181_disable(void);
 bool bsp_ap6181_is_enabled(void);
