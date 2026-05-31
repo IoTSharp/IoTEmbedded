@@ -82,7 +82,7 @@ target_sources(STM32L475VETX PRIVATE
 	${SRC_ROOT}/Interpreter/Src/basic_json.c
 	${SRC_ROOT}/Interpreter/Src/basic_modbus.c
 	${SRC_ROOT}/Interpreter/Src/basic_mqtt.c
-	${SRC_ROOT}/Interpreter/Src/basic_qb45_graphics.c
+	${SRC_ROOT}/Interpreter/Src/basic_display.c
 	${SRC_ROOT}/Interpreter/Src/basic_serial.c
 	# Modem
 	${SRC_ROOT}/Modem/Src/bsp_air724.c

@@ -20,16 +20,16 @@ typedef struct {
   bool can_draw_text;
   bool can_draw_graphics;
   bool can_read_pixels;
-  bool qb45_screen;
-  bool qb45_color;
-  bool qb45_cls;
-  bool qb45_locate;
-  bool qb45_pset;
-  bool qb45_preset;
-  bool qb45_line;
-  bool qb45_circle;
-  bool qb45_paint;
-} display_qb45_capabilities_t;
+  bool screen;
+  bool color;
+  bool cls;
+  bool locate;
+  bool pset;
+  bool preset;
+  bool line;
+  bool circle;
+  bool paint;
+} display_capabilities_t;
 
 typedef struct {
   uint16_t fg;
@@ -71,7 +71,7 @@ typedef struct {
   const char *name;
   const char *controller;
   display_size_t size;
-  display_qb45_capabilities_t qb45;
+  display_capabilities_t capabilities;
 } display_descriptor_t;
 
 typedef struct {

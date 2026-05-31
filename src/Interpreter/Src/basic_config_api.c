@@ -1,6 +1,7 @@
 #include "Interpreter/Inc/basic_config_api.h"
 
 #include "Application/Inc/app_rtos.h"
+#include "Board/Inc/bsp_board.h"
 #include "Board/Inc/bsp_watchdog.h"
 #include "Config/Inc/config.h"
 #include "Interpreter/Inc/basic.h"
@@ -19,18 +20,28 @@
 static int basic_config_get(struct mb_interpreter_t *s, void **l);
 static int basic_config_set(struct mb_interpreter_t *s, void **l);
 static int basic_config_apply(struct mb_interpreter_t *s, void **l);
+#if BSP_HAS_AT24C
 static int basic_config_save(struct mb_interpreter_t *s, void **l);
+#endif
 static int basic_config_reset(struct mb_interpreter_t *s, void **l);
 static int basic_config_network_auto(struct mb_interpreter_t *s, void **l);
+#if BSP_HAS_CH395Q
 static int basic_config_network_ch395(struct mb_interpreter_t *s, void **l);
+#endif
+#if BSP_HAS_AIR724UG
 static int basic_config_network_4g(struct mb_interpreter_t *s, void **l);
+#endif
 static int basic_config_network_use(struct mb_interpreter_t *s, void **l);
 static int basic_config_network_mode(struct mb_interpreter_t *s, void **l);
 static int basic_config_network_link(struct mb_interpreter_t *s, void **l);
 static int basic_config_network_ready(struct mb_interpreter_t *s, void **l);
+#if BSP_HAS_CH395Q
 static int basic_config_mqtt_setup_ch395(struct mb_interpreter_t *s, void **l);
+#endif
 static int basic_config_switch_network_mode(struct mb_interpreter_t *s, void **l, network_mode_t mode);
+#if BSP_HAS_CH395Q
 static bool basic_config_set_text_value(const char *key, const char *value);
+#endif
 static void basic_config_feed_heartbeat(void);
 static int basic_config_push_string(struct mb_interpreter_t *s, void **l, const char *value);
 static bool basic_config_value_to_text(mb_value_t value, char *buffer, size_t buffer_size);
@@ -46,19 +57,31 @@ ErrorStatus basic_config_register(struct mb_interpreter_t *interpreter) {
   result |= mb_register_func(interpreter, "CONFIG_GET", basic_config_get);
   result |= mb_register_func(interpreter, "CONFIG_SET", basic_config_set);
   result |= mb_register_func(interpreter, "CONFIG_APPLY", basic_config_apply);
+#if BSP_HAS_AT24C
   result |= mb_register_func(interpreter, "CONFIG_SAVE", basic_config_save);
+#endif
   result |= mb_register_func(interpreter, "CONFIG_RESET", basic_config_reset);
   result |= mb_register_func(interpreter, "NETWORK_AUTO", basic_config_network_auto);
+#if BSP_HAS_CH395Q
   result |= mb_register_func(interpreter, "NETWORK_CH395", basic_config_network_ch395);
+#endif
+#if BSP_HAS_AIR724UG
   result |= mb_register_func(interpreter, "NETWORK_4G", basic_config_network_4g);
+#endif
   result |= mb_register_func(interpreter, "NETWORK_USE", basic_config_network_use);
   result |= mb_register_func(interpreter, "NETWORK_MODE", basic_config_network_mode);
   result |= mb_register_func(interpreter, "NETWORK_LINK", basic_config_network_link);
   result |= mb_register_func(interpreter, "NETWORK_READY", basic_config_network_ready);
   result |= mb_register_func(interpreter, "MQTT_USE_AUTO", basic_config_network_auto);
+#if BSP_HAS_CH395Q
   result |= mb_register_func(interpreter, "MQTT_USE_CH395", basic_config_network_ch395);
+#endif
+#if BSP_HAS_AIR724UG
   result |= mb_register_func(interpreter, "MQTT_USE_4G", basic_config_network_4g);
+#endif
+#if BSP_HAS_CH395Q
   result |= mb_register_func(interpreter, "MQTT_SETUP_CH395", basic_config_mqtt_setup_ch395);
+#endif
   return result == MB_FUNC_OK ? SUCCESS : ERROR;
 }
 
@@ -114,12 +137,14 @@ static int basic_config_apply(struct mb_interpreter_t *s, void **l) {
   return mb_push_int(s, l, config_apply_runtime() == SUCCESS ? 1 : 0);
 }
 
+#if BSP_HAS_AT24C
 static int basic_config_save(struct mb_interpreter_t *s, void **l) {
   basic_config_feed_heartbeat();
   mb_check(mb_attempt_open_bracket(s, l));
   mb_check(mb_attempt_close_bracket(s, l));
   return mb_push_int(s, l, config_write_into_eeprom() == SUCCESS ? 1 : 0);
 }
+#endif
 
 static int basic_config_reset(struct mb_interpreter_t *s, void **l) {
   basic_config_feed_heartbeat();
@@ -130,9 +155,14 @@ static int basic_config_reset(struct mb_interpreter_t *s, void **l) {
 }
 
 static int basic_config_network_auto(struct mb_interpreter_t *s, void **l) {
+#if BSP_HAS_AP6181
+  return basic_config_switch_network_mode(s, l, NETWORK_MODE_WIFI);
+#else
   return basic_config_switch_network_mode(s, l, NETWORK_MODE_AUTO);
+#endif
 }
 
+#if BSP_HAS_CH395Q
 static int basic_config_network_ch395(struct mb_interpreter_t *s, void **l) {
   basic_config_feed_heartbeat();
   int_t persist_arg = 0;
@@ -145,10 +175,13 @@ static int basic_config_network_ch395(struct mb_interpreter_t *s, void **l) {
 
   return mb_push_int(s, l, config_apply_ch395q_network(persist_arg != 0) == SUCCESS ? 1 : 0);
 }
+#endif
 
+#if BSP_HAS_AIR724UG
 static int basic_config_network_4g(struct mb_interpreter_t *s, void **l) {
   return basic_config_switch_network_mode(s, l, NETWORK_MODE_AIR724UG);
 }
+#endif
 
 static int basic_config_network_use(struct mb_interpreter_t *s, void **l) {
   basic_config_feed_heartbeat();
@@ -172,6 +205,7 @@ static int basic_config_network_use(struct mb_interpreter_t *s, void **l) {
   return mb_push_int(s, l, config_apply_network_mode(network_mode, persist_arg != 0) == SUCCESS ? 1 : 0);
 }
 
+#if BSP_HAS_CH395Q
 static int basic_config_mqtt_setup_ch395(struct mb_interpreter_t *s, void **l) {
   basic_config_feed_heartbeat();
   char *mqtt_host = NULL;
@@ -213,6 +247,7 @@ static int basic_config_mqtt_setup_ch395(struct mb_interpreter_t *s, void **l) {
 
   return mb_push_int(s, l, config_apply_ch395q_network(persist_arg != 0) == SUCCESS ? 1 : 0);
 }
+#endif
 
 static int basic_config_network_mode(struct mb_interpreter_t *s, void **l) {
   basic_config_feed_heartbeat();
@@ -306,9 +341,11 @@ static void basic_config_release_value(struct mb_interpreter_t *s, mb_value_t va
   }
 }
 
+#if BSP_HAS_CH395Q
 static bool basic_config_set_text_value(const char *key, const char *value) {
   return key != NULL && value != NULL && config_set_value(key, value) == SUCCESS;
 }
+#endif
 
 static int_t basic_config_bool_to_int(bool value) {
   return value ? 1 : 0;

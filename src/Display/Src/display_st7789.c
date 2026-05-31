@@ -13,7 +13,7 @@
 #define ST7789_FONT_HEIGHT       7U
 #define ST7789_FONT_FIRST_CHAR   0x20U
 #define ST7789_FONT_LAST_CHAR    0x7EU
-#define ST7789_QB45_SCREEN_MODE  12
+#define ST7789_BASIC_SCREEN_MODE  12
 
 #define ST7789_CMD_SWRESET 0x01U
 #define ST7789_CMD_SLPOUT  0x11U
@@ -145,20 +145,20 @@ static const display_driver_t display_st7789_driver_instance = {
       .name = "ST7789 LCD",
       .controller = "ST7789",
       .size = {ST7789_WIDTH_DEFAULT, ST7789_HEIGHT_DEFAULT},
-      .qb45 =
+      .capabilities =
         {
           .can_draw_text = true,
           .can_draw_graphics = true,
           .can_read_pixels = false,
-          .qb45_screen = true,
-          .qb45_color = true,
-          .qb45_cls = true,
-          .qb45_locate = true,
-          .qb45_pset = true,
-          .qb45_preset = true,
-          .qb45_line = true,
-          .qb45_circle = true,
-          .qb45_paint = false,
+          .screen = true,
+          .color = true,
+          .cls = true,
+          .locate = true,
+          .pset = true,
+          .preset = true,
+          .line = true,
+          .circle = true,
+          .paint = false,
         },
     },
   .ops =
@@ -181,7 +181,7 @@ const display_driver_t *display_st7789_driver(void) {
 
 static ErrorStatus display_st7789_configure_screen(void *context, int mode) {
   display_st7789_context_t *driver = (display_st7789_context_t *)context;
-  if (!display_st7789_can_use(driver) || (mode != 0 && mode != ST7789_QB45_SCREEN_MODE)) {
+  if (!display_st7789_can_use(driver) || (mode != 0 && mode != ST7789_BASIC_SCREEN_MODE)) {
     return ERROR;
   }
 
