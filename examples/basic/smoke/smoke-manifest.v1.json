@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "1.0",
+  "apiCatalog": "../../../docs/basic/basic-api.v1.json",
+  "description": "BASIC smoke scripts and expected observable output. Hardware scripts may run against a board, loopback wiring, or a host mock.",
+  "scripts": [
+    {
+      "id": "json-core",
+      "path": "json_smoke.bas",
+      "requires": ["json"],
+      "mode": "host-or-target",
+      "expectedLines": [
+        "JSON: start",
+        "JSON: valid=1",
+        "JSON: set_id=1",
+        "JSON: set_temp=1",
+        "JSON: set_online=1",
+        "JSON: append1=1",
+        "JSON: append2=1",
+        "JSON: set_arr=1",
+        "JSON: id=d1",
+        "JSON: temp=23.5",
+        "JSON: online=1",
+        "JSON: count=2",
+        "JSON: sample0=10",
+        "JSON: text={\"device\":{\"id\":\"d1\"},\"telemetry\":{\"temperature\":23.5},\"state\":{\"online\":true},\"samples\":[10,20]}",
+        "JSON: done"
+      ]
+    },
+    {
+      "id": "config-runtime",
+      "path": "config_smoke.bas",
+      "requires": ["config", "network"],
+      "mode": "target-or-mock",
+      "expectedPatterns": [
+        "^CONFIG: start$",
+        "^CONFIG: mode=(auto|wired|4g|wifi|unknown)$",
+        "^CONFIG: set_probe=1$",
+        "^CONFIG: probe=30000$",
+        "^CONFIG: apply=[01]$",
+        "^CONFIG: network_mode=(auto|wired|4g|wifi)$",
+        "^CONFIG: network_link=.*$",
+        "^CONFIG: network_ready=[01]$",
+        "^CONFIG: use_original=[01]$",
+        "^CONFIG: done$"
+      ]
+    },
+    {
+      "id": "serial-loopback",
+      "path": "serial_smoke.bas",
+      "requires": ["serial"],
+      "mode": "target-loopback-or-mock",
+      "fixtures": {
+        "port": 2,
+        "interface": "SERIAL",
+        "loopback": "TX/RX connected or mocked echo"
+      },
+      "expectedPatterns": [
+        "^SERIAL: start$",
+        "^SERIAL: open=USERTYPE(_REF)?$",
+        "^SERIAL: baud=[0-9]+$",
+        "^SERIAL: set_baud=1$",
+        "^SERIAL: flush=1$",
+        "^SERIAL: write=4$",
+        "^SERIAL: read_text=(PING)?$",
+        "^SERIAL: write_bytes=4$",
+        "^SERIAL: read_bytes=[0-4]$",
+        "^SERIAL: done$"
+      ]
+    },
+    {
+      "id": "modbus-rtu",
+      "path": "modbus_smoke.bas",
+      "requires": ["serial", "rs485", "modbusRtu"],
+      "mode": "target-slave-or-mock",
+      "fixtures": {
+        "port": 1,
+        "interface": "RS485",
+        "slave": 1,
+        "holdingRegisters": [4660, 22136],
+        "coils": [1, 0, 1, 1]
+      },
+      "expectedPatterns": [
+        "^MODBUS: start$",
+        "^MODBUS: read_hold=2$",
+        "^MODBUS: reg0_hi=18$",
+        "^MODBUS: reg0_lo=52$",
+        "^MODBUS: read_coils=4$",
+        "^MODBUS: write_reg=1$",
+        "^MODBUS: write_coil=1$",
+        "^MODBUS: last_error=0$",
+        "^MODBUS: done$"
+      ]
+    },
+    {
+      "id": "mqtt-loopback",
+      "path": "mqtt_smoke.bas",
+      "requires": ["network", "mqtt"],
+      "mode": "target-broker-or-mock",
+      "fixtures": {
+        "broker": "CONFIG_GET(\"mqtt_ip\", \"127.0.0.1\"):1883",
+        "topic": "iotembedded/basic/smoke",
+        "echoPublishedMessages": true
+      },
+      "expectedPatterns": [
+        "^MQTT: start$",
+        "^MQTT: handle=[1-9][0-9]*$",
+        "^MQTT: connected=1$",
+        "^MQTT: subscribe=1$",
+        "^MQTT: publish=1$",
+        "^MQTT: receive_topic=iotembedded/basic/smoke$",
+        "^MQTT: receive_payload=hello$",
+        "^MQTT: unsubscribe=1$",
+        "^MQTT: disconnect=1$",
+        "^MQTT: done$"
+      ]
+    },
+    {
+      "id": "display-pandora",
+      "path": "display_smoke.bas",
+      "requires": ["display"],
+      "profiles": ["stm32l475vetx"],
+      "mode": "target-display",
+      "expectedPatterns": [
+        "^DISPLAY: start$",
+        "^DISPLAY: screen=1$",
+        "^DISPLAY: color=1$",
+        "^DISPLAY: cls=1$",
+        "^DISPLAY: locate=1$",
+        "^DISPLAY READY$",
+        "^DISPLAY: pset=1$",
+        "^DISPLAY: preset=1$",
+        "^DISPLAY: line=1$",
+        "^DISPLAY: circle=1$",
+        "^DISPLAY: paint=0$",
+        "^DISPLAY: console=1$",
+        "^DISPLAY: done$"
+      ]
+    }
+  ]
+}

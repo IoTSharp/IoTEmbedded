@@ -1,0 +1,16 @@
+REM DISPLAY smoke - requires STM32L475/Pandora display profile
+PRINT "DISPLAY: start"
+
+PRINT "DISPLAY: screen="; SCREEN(12)
+PRINT "DISPLAY: color="; COLOR(15, 0)
+PRINT "DISPLAY: cls="; CLS(0)
+PRINT "DISPLAY: locate="; LOCATE(1, 1)
+PRINT "DISPLAY READY"
+PRINT "DISPLAY: pset="; PSET(10, 10, 15)
+PRINT "DISPLAY: preset="; PRESET(11, 10)
+PRINT "DISPLAY: line="; LINE(20, 20, 80, 40, 9)
+PRINT "DISPLAY: circle="; CIRCLE(120, 120, 24, 10, 0)
+PRINT "DISPLAY: paint="; PAINT(0, 0, 1, 0)
+PRINT "DISPLAY: console="; SCREEN(0)
+PRINT "DISPLAY: done"
+END

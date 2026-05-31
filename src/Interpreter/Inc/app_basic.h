@@ -68,6 +68,10 @@ typedef struct {
   const char *name;
   const char *parameters;
   const char *returns;
+  const char *error_model;
+  const char *timeout_model;
+  const char *handle_lifecycle;
+  const char *memory_owner;
   app_basic_capability_flags_t dependencies;
   app_basic_target_flags_t targets;
 } app_basic_function_descriptor_t;
@@ -82,6 +86,8 @@ app_basic_print_target_t app_basic_get_print_target(void);
 const app_basic_profile_t *app_basic_get_profile(void);
 const app_basic_function_descriptor_t *app_basic_get_function_registry(size_t *count);
 bool app_basic_function_is_available(const app_basic_function_descriptor_t *function);
+bool app_basic_capabilities_are_available(app_basic_capability_flags_t dependencies);
+bool app_basic_targets_are_available(app_basic_target_flags_t targets);
 
 #ifdef __cplusplus
 }

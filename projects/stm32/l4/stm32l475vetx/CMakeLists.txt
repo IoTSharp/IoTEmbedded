@@ -76,6 +76,7 @@ target_sources(STM32L475VETX PRIVATE
 	${SRC_ROOT}/Display/Src/display_st7789.c
 	# Interpreter
 	${SRC_ROOT}/Interpreter/Src/app_basic.c
+	${SRC_ROOT}/Interpreter/Src/app_basic_registry.c
 	${SRC_ROOT}/Interpreter/Src/basic.c
 	${SRC_ROOT}/Interpreter/Src/basic_config_api.c
 	${SRC_ROOT}/Interpreter/Src/basic_format.c

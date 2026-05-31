@@ -4,6 +4,8 @@
 当前固件默认从 EEPROM 里的 `app01.bas` / `app02.bas` 读取脚本；这里的示例文件用于编写和演示脚本内容。
 `IMPORT` 参数是包内脚本名，不是物理槽位名；STM32 会按 EEPROM 槽里保存的脚本名做映射，例如把 `common.bas` 存入备份槽后，主脚本可使用 `IMPORT "common.bas"`。
 
+统一 BASIC API 清单位于 `../../docs/basic/basic-api.v1.json`，其中 `functionSignatures` 是逐函数 canonical 列表；错误码、超时、句柄生命周期和内存所有权约定位于 `../../docs/basic/api-contracts.md`。关键函数 smoke 脚本位于 `smoke/`，预期输出由 `smoke/smoke-manifest.v1.json` 描述，后续 host harness、CodeGen 和低资源 Linux Profile 应优先消费这些机器可读文件。
+
 ## MQTT 函数
 
 - `MQTT_CONNECT(endpoint$[, port, client_id$, username$, password$, keep_alive_seconds])`：连接服务器，成功返回 MQTT 句柄，失败返回 `0`。

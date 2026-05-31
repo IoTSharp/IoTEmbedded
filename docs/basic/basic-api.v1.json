@@ -1,0 +1,2115 @@
+{
+  "schemaVersion": "1.0",
+  "source": "src/Interpreter/Src/app_basic_registry.c",
+  "description": "Machine-readable IoTEmbedded BASIC API catalog for examples, CodeGen, and target profiles.",
+  "canonicalFunctionList": "functionSignatures",
+  "targets": [
+    "stm32",
+    "rtos",
+    "bareMetal",
+    "lowResourceLinux"
+  ],
+  "capabilities": [
+    "runtime",
+    "serial",
+    "rs485",
+    "rs232",
+    "modbusRtu",
+    "format",
+    "json",
+    "config",
+    "storage",
+    "network",
+    "networkCh395q",
+    "networkAir724ug",
+    "networkAp6181",
+    "mqtt",
+    "time",
+    "display"
+  ],
+  "profiles": [
+    {
+      "name": "stm32f103vetx",
+      "targets": [
+        "stm32",
+        "rtos"
+      ],
+      "capabilities": [
+        "runtime",
+        "serial",
+        "rs485",
+        "rs232",
+        "modbusRtu",
+        "format",
+        "json",
+        "config",
+        "storage",
+        "network",
+        "networkCh395q",
+        "networkAir724ug",
+        "mqtt",
+        "time"
+      ]
+    },
+    {
+      "name": "stm32l475vetx",
+      "targets": [
+        "stm32",
+        "rtos"
+      ],
+      "capabilities": [
+        "runtime",
+        "serial",
+        "rs485",
+        "modbusRtu",
+        "format",
+        "json",
+        "config",
+        "network",
+        "networkAp6181",
+        "mqtt",
+        "time",
+        "display"
+      ]
+    },
+    {
+      "name": "low-resource-linux",
+      "status": "planned",
+      "targets": [
+        "lowResourceLinux"
+      ],
+      "capabilities": [
+        "runtime",
+        "serial",
+        "rs485",
+        "modbusRtu",
+        "format",
+        "json",
+        "config",
+        "network",
+        "mqtt",
+        "time"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "name": "serial",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "name": "modbus",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "name": "format",
+      "dependencies": [
+        "format"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "name": "json",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "name": "config",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "name": "mqtt",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "name": "display",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    }
+  ],
+  "commonContracts": {
+    "serialErrorModel": "Invalid arguments abort the call; device failures return 0, an empty string, or a partial byte count.",
+    "modbusErrorModel": "Returns 0 on invalid data, no response, CRC, exception, or frame error; MODBUS_LAST_ERROR returns the latest numeric code.",
+    "mqttErrorModel": "Returns 0 or NIL on failure; MQTT_LAST_ERROR returns the latest message.",
+    "jsonErrorModel": "Invalid arguments abort the call; parse/get misses return NIL, default values, 0, or -1.",
+    "configErrorModel": "Returns 0 or the supplied default string on unknown key, invalid value, apply, or save failure.",
+    "displayErrorModel": "Returns 0 when the display operation is unavailable or unsupported.",
+    "myBasicOwned": "Returned scalars, strings, lists, dictionaries, and usertypes are owned by MY-BASIC."
+  },
+  "functionGroups": [
+    {
+      "module": "serial",
+      "name": "SERIAL_OPEN",
+      "parameters": "(port:int, interface:string)",
+      "returns": "serial_port",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "timeoutModel": "No script-visible timeout.",
+      "handleLifecycle": "Returns a borrowed board port usertype; valid until interpreter/profile reload.",
+      "memoryOwner": "MY-BASIC owns the returned usertype reference."
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_WRITE",
+      "parameters": "(port:serial_port, text:string, [timeout_ms:int])",
+      "returns": "int bytes_written",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "timeoutModel": "Optional timeout_ms; default 1000 ms; negative coerces to 0.",
+      "handleLifecycle": "Consumes a SERIAL_OPEN port handle.",
+      "memoryOwner": "Text is read-only script input."
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_WRITE_BYTES",
+      "parameters": "(port:serial_port, bytes:array, length:int, [timeout_ms:int])",
+      "returns": "int bytes_written",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "timeoutModel": "Optional timeout_ms; default 1000 ms; negative coerces to 0.",
+      "handleLifecycle": "Consumes a SERIAL_OPEN port handle.",
+      "memoryOwner": "Array is script-owned and read in place."
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_READ",
+      "parameters": "(port:serial_port, length:int, [timeout_ms:int])",
+      "returns": "string",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "timeoutModel": "Optional timeout_ms; default 1000 ms; negative coerces to 0.",
+      "handleLifecycle": "Consumes a SERIAL_OPEN port handle.",
+      "memoryOwner": "Returned string is MY-BASIC-owned."
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_READ_BYTES",
+      "parameters": "(port:serial_port, bytes:array, length:int, [timeout_ms:int])",
+      "returns": "int bytes_read",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "timeoutModel": "Optional timeout_ms; default 1000 ms; negative coerces to 0.",
+      "handleLifecycle": "Consumes a SERIAL_OPEN port handle.",
+      "memoryOwner": "Array is script-owned and mutated in place."
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_BAUD",
+      "parameters": "(port:serial_port)",
+      "returns": "int baud_rate",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_SET_BAUD",
+      "parameters": "(port:serial_port, baud_rate:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_FLUSH",
+      "parameters": "(port:serial_port)",
+      "returns": "int ok",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_COILS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int bits_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "timeoutModel": "Optional wait_ms; default 180 ms plus computed RTU frame time.",
+      "handleLifecycle": "Consumes a SERIAL_OPEN port handle.",
+      "memoryOwner": "Output array is script-owned and mutated in place."
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_DISCRETE_INPUTS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int bits_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "timeoutModel": "Optional wait_ms; default 180 ms plus computed RTU frame time.",
+      "handleLifecycle": "Consumes a SERIAL_OPEN port handle.",
+      "memoryOwner": "Output array is script-owned and mutated in place."
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_HOLD_REGS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int registers_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "aliasOf": "MODBUS_READ_HOLDING_REGISTERS"
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_HOLDING_REGISTERS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int registers_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_INPUT_REGS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int registers_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "aliasOf": "MODBUS_READ_INPUT_REGISTERS"
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_INPUT_REGISTERS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int registers_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_COIL",
+      "parameters": "(port:serial_port, slave:int, address:int, value:int, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_REG",
+      "parameters": "(port:serial_port, slave:int, address:int, value:int, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "aliasOf": "MODBUS_WRITE_REGISTER"
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_REGISTER",
+      "parameters": "(port:serial_port, slave:int, address:int, value:int, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_COILS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, values:array, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_REGS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, values:array, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "aliasOf": "MODBUS_WRITE_REGISTERS"
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_REGISTERS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, values:array, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_ERROR",
+      "parameters": "()",
+      "returns": "int error_code",
+      "dependencies": [
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "aliasOf": "MODBUS_LAST_ERROR"
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_LAST_ERROR",
+      "parameters": "()",
+      "returns": "int error_code",
+      "dependencies": [
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "format",
+      "name": "FORMAT",
+      "parameters": "(template:string, ...values:any)",
+      "returns": "string",
+      "dependencies": [
+        "format"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "format",
+      "name": "FMT",
+      "parameters": "(template:string, ...values:any)",
+      "returns": "string",
+      "dependencies": [
+        "format"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "aliasOf": "FORMAT"
+    },
+    {
+      "module": "json",
+      "names": [
+        "JSON_PARSE",
+        "JSON_OBJECT",
+        "JSON_ARRAY",
+        "JSON_STRING",
+        "JSON_NUMBER",
+        "JSON_BOOL",
+        "JSON_NULL"
+      ],
+      "returns": "json|nil",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "handleLifecycle": "Returns interpreter-owned JSON usertype values while referenced by the script.",
+      "memoryOwner": "JSON usertypes are MY-BASIC-owned."
+    },
+    {
+      "module": "json",
+      "name": "JSON_VALID",
+      "parameters": "(text:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "names": [
+        "JSON_TYPE",
+        "JSON_STRINGIFY",
+        "JSON_HAS",
+        "JSON_COUNT",
+        "JSON_KEY",
+        "JSON_GET",
+        "JSON_GET_STRING",
+        "JSON_GET_NUMBER",
+        "JSON_GET_INT",
+        "JSON_GET_BOOL",
+        "JSON_AT",
+        "JSON_AT_STRING",
+        "JSON_AT_NUMBER",
+        "JSON_AT_INT",
+        "JSON_AT_BOOL"
+      ],
+      "returns": "json|string|real|int|nil depending on function",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "memoryOwner": "Returned child JSON values are independent MY-BASIC-owned copies."
+    },
+    {
+      "module": "json",
+      "names": [
+        "JSON_SET_STRING",
+        "JSON_SET_NUMBER",
+        "JSON_SET_BOOL",
+        "JSON_SET_NULL",
+        "JSON_SET_JSON",
+        "JSON_SET_AT_STRING",
+        "JSON_SET_AT_NUMBER",
+        "JSON_SET_AT_BOOL",
+        "JSON_SET_AT_NULL",
+        "JSON_SET_AT_JSON",
+        "JSON_APPEND_STRING",
+        "JSON_APPEND_NUMBER",
+        "JSON_APPEND_BOOL",
+        "JSON_APPEND_NULL",
+        "JSON_APPEND_JSON",
+        "JSON_REMOVE",
+        "JSON_REMOVE_AT",
+        "JSON_CLEAR"
+      ],
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "memoryOwner": "Target JSON handle is mutated in place; source JSON inputs are copied when inserted."
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_GET",
+      "parameters": "(key:string, [default:string])",
+      "returns": "string",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_SET",
+      "parameters": "(key:string, value:any)",
+      "returns": "int ok",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_APPLY",
+      "parameters": "()",
+      "returns": "int ok",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_SAVE",
+      "parameters": "()",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "storage"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_RESET",
+      "parameters": "()",
+      "returns": "int ok",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "names": [
+        "NETWORK_AUTO",
+        "NETWORK_USE",
+        "NETWORK_MODE",
+        "NETWORK_LINK",
+        "NETWORK_READY",
+        "MQTT_USE_AUTO"
+      ],
+      "returns": "int|string depending on function",
+      "dependencies": [
+        "config",
+        "network"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "names": [
+        "NETWORK_CH395",
+        "MQTT_USE_CH395"
+      ],
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "networkCh395q"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "names": [
+        "NETWORK_4G",
+        "MQTT_USE_4G"
+      ],
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "networkAir724ug"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "MQTT_SETUP_CH395",
+      "parameters": "(host:string, port:int, user:string, password:string, local_ip:string, gateway:string, mask:string, [persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "mqtt",
+        "networkCh395q"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_CONNECT",
+      "parameters": "(endpoint:string, [port:int], [client_id:string], [username:string], [password:string], [keepalive:int])",
+      "returns": "int handle",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "handleLifecycle": "Returns an integer session handle; another MQTT_CONNECT or MQTT_DISCONNECT invalidates the previous physical session."
+    },
+    {
+      "module": "mqtt",
+      "names": [
+        "MQTT_DISCONNECT",
+        "MQTT_CONNECTED",
+        "MQTT_PING",
+        "MQTT_PUBLISH",
+        "MQTT_SUBSCRIBE",
+        "MQTT_UNSUBSCRIBE"
+      ],
+      "returns": "int ok",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "handleLifecycle": "Consumes an active MQTT_CONNECT handle."
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_RECEIVE",
+      "parameters": "(handle:int, [timeout_ms:int])",
+      "returns": "dict|nil",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "timeoutModel": "Optional timeout_ms; default 0 non-blocking; poll slice is 50 ms.",
+      "memoryOwner": "Returned DICT and copied topic/payload strings are MY-BASIC-owned."
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_LAST_ERROR",
+      "parameters": "([handle:int])",
+      "returns": "string",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "runtime",
+      "names": [
+        "DELAY",
+        "SLEEP"
+      ],
+      "parameters": "(milliseconds:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "time"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "runtime",
+      "name": "TICKS",
+      "parameters": "()",
+      "returns": "int milliseconds",
+      "dependencies": [
+        "time"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "names": [
+        "SCREEN",
+        "CLS",
+        "COLOR",
+        "LOCATE",
+        "PSET",
+        "PRESET",
+        "LINE",
+        "CIRCLE",
+        "PAINT"
+      ],
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ],
+      "availableProfiles": [
+        "stm32l475vetx"
+      ],
+      "handleLifecycle": "SCREEN selects display print target; no explicit handle."
+    }
+  ],
+  "functionSignatures": [
+    {
+      "module": "serial",
+      "name": "SERIAL_OPEN",
+      "parameters": "(port:int, interface:string)",
+      "returns": "serial_port",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_WRITE",
+      "parameters": "(port:serial_port, text:string, [timeout_ms:int])",
+      "returns": "int bytes_written",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_WRITE_BYTES",
+      "parameters": "(port:serial_port, bytes:array, length:int, [timeout_ms:int])",
+      "returns": "int bytes_written",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_READ",
+      "parameters": "(port:serial_port, length:int, [timeout_ms:int])",
+      "returns": "string",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_READ_BYTES",
+      "parameters": "(port:serial_port, bytes:array, length:int, [timeout_ms:int])",
+      "returns": "int bytes_read",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_BAUD",
+      "parameters": "(port:serial_port)",
+      "returns": "int baud_rate",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_SET_BAUD",
+      "parameters": "(port:serial_port, baud_rate:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "serial",
+      "name": "SERIAL_FLUSH",
+      "parameters": "(port:serial_port)",
+      "returns": "int ok",
+      "dependencies": [
+        "serial"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_COILS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int bits_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_DISCRETE_INPUTS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int bits_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_HOLD_REGS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int registers_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_HOLDING_REGISTERS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int registers_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_INPUT_REGS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int registers_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_READ_INPUT_REGISTERS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, out:array, [wait_ms:int])",
+      "returns": "int registers_read",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_COIL",
+      "parameters": "(port:serial_port, slave:int, address:int, value:int, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_REG",
+      "parameters": "(port:serial_port, slave:int, address:int, value:int, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_REGISTER",
+      "parameters": "(port:serial_port, slave:int, address:int, value:int, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_COILS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, values:array, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_REGS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, values:array, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_WRITE_REGISTERS",
+      "parameters": "(port:serial_port, slave:int, address:int, count:int, values:array, [wait_ms:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "serial",
+        "rs485",
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_ERROR",
+      "parameters": "()",
+      "returns": "int error_code",
+      "dependencies": [
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "modbus",
+      "name": "MODBUS_LAST_ERROR",
+      "parameters": "()",
+      "returns": "int error_code",
+      "dependencies": [
+        "modbusRtu"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "format",
+      "name": "FORMAT",
+      "parameters": "(template:string, ...values:any)",
+      "returns": "string",
+      "dependencies": [
+        "format"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "format",
+      "name": "FMT",
+      "parameters": "(template:string, ...values:any)",
+      "returns": "string",
+      "dependencies": [
+        "format"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_PARSE",
+      "parameters": "(text:string)",
+      "returns": "json|nil",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_VALID",
+      "parameters": "(text:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_OBJECT",
+      "parameters": "()",
+      "returns": "json",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_ARRAY",
+      "parameters": "()",
+      "returns": "json",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_STRING",
+      "parameters": "(text:string)",
+      "returns": "json",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_NUMBER",
+      "parameters": "(value:real)",
+      "returns": "json",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_BOOL",
+      "parameters": "(value:int)",
+      "returns": "json",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_NULL",
+      "parameters": "()",
+      "returns": "json",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_TYPE",
+      "parameters": "(json:json, [path:string])",
+      "returns": "int type",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_STRINGIFY",
+      "parameters": "(json:json, [path:string])",
+      "returns": "string",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_HAS",
+      "parameters": "(json:json, path:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_COUNT",
+      "parameters": "(json:json, [path:string])",
+      "returns": "int count",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_KEY",
+      "parameters": "(json:json, path:string, index:int)",
+      "returns": "string",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_GET",
+      "parameters": "(json:json, path:string)",
+      "returns": "json|nil",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_GET_STRING",
+      "parameters": "(json:json, path:string, [default:string])",
+      "returns": "string",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_GET_NUMBER",
+      "parameters": "(json:json, path:string, [default:real])",
+      "returns": "real",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_GET_INT",
+      "parameters": "(json:json, path:string, [default:int])",
+      "returns": "int",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_GET_BOOL",
+      "parameters": "(json:json, path:string, [default:int])",
+      "returns": "int",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_AT",
+      "parameters": "(json:json, path:string, index:int)",
+      "returns": "json|nil",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_AT_STRING",
+      "parameters": "(json:json, path:string, index:int, [default:string])",
+      "returns": "string",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_AT_NUMBER",
+      "parameters": "(json:json, path:string, index:int, [default:real])",
+      "returns": "real",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_AT_INT",
+      "parameters": "(json:json, path:string, index:int, [default:int])",
+      "returns": "int",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_AT_BOOL",
+      "parameters": "(json:json, path:string, index:int, [default:int])",
+      "returns": "int",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_STRING",
+      "parameters": "(json:json, path:string, text:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_NUMBER",
+      "parameters": "(json:json, path:string, value:real)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_BOOL",
+      "parameters": "(json:json, path:string, value:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_NULL",
+      "parameters": "(json:json, path:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_JSON",
+      "parameters": "(target:json, path:string, source:json)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_AT_STRING",
+      "parameters": "(json:json, path:string, index:int, text:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_AT_NUMBER",
+      "parameters": "(json:json, path:string, index:int, value:real)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_AT_BOOL",
+      "parameters": "(json:json, path:string, index:int, value:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_AT_NULL",
+      "parameters": "(json:json, path:string, index:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_SET_AT_JSON",
+      "parameters": "(target:json, path:string, index:int, source:json)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_APPEND_STRING",
+      "parameters": "(json:json, path:string, text:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_APPEND_NUMBER",
+      "parameters": "(json:json, path:string, value:real)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_APPEND_BOOL",
+      "parameters": "(json:json, path:string, value:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_APPEND_NULL",
+      "parameters": "(json:json, path:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_APPEND_JSON",
+      "parameters": "(target:json, path:string, source:json)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_REMOVE",
+      "parameters": "(json:json, path:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_REMOVE_AT",
+      "parameters": "(json:json, path:string, index:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "json",
+      "name": "JSON_CLEAR",
+      "parameters": "(json:json, [path:string])",
+      "returns": "int ok",
+      "dependencies": [
+        "json"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_GET",
+      "parameters": "(key:string, [default:string])",
+      "returns": "string",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_SET",
+      "parameters": "(key:string, value:any)",
+      "returns": "int ok",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_APPLY",
+      "parameters": "()",
+      "returns": "int ok",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_SAVE",
+      "parameters": "()",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "storage"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "CONFIG_RESET",
+      "parameters": "()",
+      "returns": "int ok",
+      "dependencies": [
+        "config"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "NETWORK_AUTO",
+      "parameters": "([persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "network"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "NETWORK_CH395",
+      "parameters": "([persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "networkCh395q"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "NETWORK_4G",
+      "parameters": "([persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "networkAir724ug"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "NETWORK_USE",
+      "parameters": "(mode:string, [persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "network"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "NETWORK_MODE",
+      "parameters": "()",
+      "returns": "string",
+      "dependencies": [
+        "config",
+        "network"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "NETWORK_LINK",
+      "parameters": "()",
+      "returns": "string",
+      "dependencies": [
+        "config",
+        "network"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "NETWORK_READY",
+      "parameters": "()",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "network"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "MQTT_USE_AUTO",
+      "parameters": "([persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "network"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "MQTT_USE_CH395",
+      "parameters": "([persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "networkCh395q"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "MQTT_USE_4G",
+      "parameters": "([persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "networkAir724ug"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "config",
+      "name": "MQTT_SETUP_CH395",
+      "parameters": "(host:string, port:int, user:string, password:string, local_ip:string, gateway:string, mask:string, [persist:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "config",
+        "mqtt",
+        "networkCh395q"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_CONNECT",
+      "parameters": "(endpoint:string, [port:int], [client_id:string], [username:string], [password:string], [keepalive:int])",
+      "returns": "int handle",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_DISCONNECT",
+      "parameters": "(handle:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_CONNECTED",
+      "parameters": "(handle:int)",
+      "returns": "int connected",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_PING",
+      "parameters": "(handle:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_PUBLISH",
+      "parameters": "(handle:int, topic:string, payload:string, [qos:int], [retain:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_SUBSCRIBE",
+      "parameters": "(handle:int, topic:string, [qos:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_UNSUBSCRIBE",
+      "parameters": "(handle:int, topic:string)",
+      "returns": "int ok",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_RECEIVE",
+      "parameters": "(handle:int, [timeout_ms:int])",
+      "returns": "dict|nil",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "mqtt",
+      "name": "MQTT_LAST_ERROR",
+      "parameters": "([handle:int])",
+      "returns": "string",
+      "dependencies": [
+        "network",
+        "mqtt"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "runtime",
+      "name": "DELAY",
+      "parameters": "(milliseconds:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "time"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "runtime",
+      "name": "SLEEP",
+      "parameters": "(milliseconds:int)",
+      "returns": "int ok",
+      "dependencies": [
+        "time"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "runtime",
+      "name": "TICKS",
+      "parameters": "()",
+      "returns": "int milliseconds",
+      "dependencies": [
+        "time"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "SCREEN",
+      "parameters": "([mode:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "CLS",
+      "parameters": "([color:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "COLOR",
+      "parameters": "([foreground:int], [background:int], [border:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "LOCATE",
+      "parameters": "([row:int], [column:int], [cursor:int], [start:int], [stop:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "PSET",
+      "parameters": "(x:int, y:int, [color:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "PRESET",
+      "parameters": "(x:int, y:int, [color:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "LINE",
+      "parameters": "(x1:int, y1:int, x2:int, y2:int, [color:int], [style:string])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "CIRCLE",
+      "parameters": "(x:int, y:int, radius:int, [color:int], [fill:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    },
+    {
+      "module": "display",
+      "name": "PAINT",
+      "parameters": "(x:int, y:int, [fill_color:int], [border_color:int], [background:int])",
+      "returns": "int ok",
+      "dependencies": [
+        "display"
+      ],
+      "targets": [
+        "stm32"
+      ]
+    }
+  ]
+}
