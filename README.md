@@ -25,8 +25,6 @@ IoTEmbedded 是 IoTSharp 生态的嵌入式 BASIC/C 运行时，覆盖 STM32、R
 - bare-metal 固件
 - 低资源 Linux 设备
 
-`external/IoTEdge.Linux` / Pixiu 中的 C 运行时、RS485、CRC、parson、轻量 HTTP 与控制面板等模块会作为迁移来源按需纳入本仓库，不再作为新的独立产品线扩展。
-
 ## 目录原则
 
 详细结构见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。

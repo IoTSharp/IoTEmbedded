@@ -45,7 +45,7 @@
 | M4 | ⬜ | 脚本加载、签名校验与本地版本管理 |
 | M5 | ⬜ | 至少两个 MCU/RTOS 目标和一个低资源 Linux Profile 验证通过 |
 | M6 | ⬜ | 资源优化：体积、堆栈、ROM 占用、低资源 Linux 启动耗时 |
-| M7 | ⬜ | Pixiu 可复用 C 资产迁移完成，`IoTEdge.Linux` 进入只读维护 |
+| M7 | ⬜ | 低资源 Linux Profile 验证完成并纳入 IoTEmbedded 主线 |
 
 ## 3. Phase A — 解释器内核　⬜
 
@@ -85,14 +85,14 @@
 | D3 | ⬜ | [依赖: D1] | 多脚本槽与回滚 |
 | D4 | ⬜ | [并行 ‖ D2] | 看门狗、步数预算、时间预算 |
 
-## 7. Phase E — Pixiu 资产迁移　⬜
+## 7. Phase E — 低资源 Linux Profile　⬜
 
 | 编号 | 状态 | 顺序 | 任务 |
 | --- | --- | --- | --- |
-| E1 | ⬜ | [串行] | 盘点 `external/IoTEdge.Linux/app` 中可复用 C 模块 |
-| E2 | ⬜ | [依赖: E1] | 迁移 RS485、CRC、parson、轻量 HTTP 等通用模块 |
-| E3 | ⬜ | [依赖: E1] | 评估 `web` 控制面板是否保留为 IoTEmbedded 低资源 Linux 管理界面 |
-| E4 | ⬜ | [依赖: E2, E3] | 标记 Pixiu / `IoTEdge.Linux` 为只读维护状态 |
+| E1 | ⬜ | [串行] | 定义 low-resource Linux Profile 能力边界 |
+| E2 | ⬜ | [依赖: E1] | 补齐 RS485、CRC、轻量 HTTP 等通用模块 |
+| E3 | ⬜ | [依赖: E1] | 评估低资源 Linux 管理界面是否进入 IoTEmbedded |
+| E4 | ⬜ | [依赖: E2, E3] | 完成 Profile 构建、运行与回归验证 |
 
 ## 8. 接口稳定性公约
 
